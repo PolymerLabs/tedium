@@ -1,0 +1,31 @@
+{
+  "name": "tedium",
+  "version": "1.0.0",
+  "description": "A bot for doing mass changes to github repos for the Polymer team",
+  "main": "tedium.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PolymerLabs/tedium.git"
+  },
+  "keywords": [
+    "bot"
+  ],
+  "author": "The Polymer Project Authors",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/PolymerLabs/tedium/issues"
+  },
+  "homepage": "https://github.com/PolymerLabs/tedium#readme",
+  "dependencies": {
+    "github": "^0.2.0",
+    "github-cache": "^1.1.0",
+    "hydrolysis": "^1.19.3",
+    "nodegit": "^0.5.0",
+    "progress": "^1.1.8",
+    "promisify-node": "^0.2.1",
+    "rimraf": "^2.4.3"
+  }
+}
