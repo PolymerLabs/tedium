@@ -10,6 +10,22 @@ const ProgressBar = require('progress');
 const rimraf = require('rimraf');
 const hydrolysis = require('hydrolysis');
 
+let GITHUB_TOKEN;
+
+try {
+  GITHUB_TOKEN = fs.readFileSync('token', 'utf8').trim();
+} catch(e) {
+  console.error(
+`
+You need to create a github token and place it in a file named 'token'.
+The token only needs the 'public repos' permission.
+
+Generate a token here:   https://github.com/settings/tokens
+`
+  )
+  process.exit(1);
+}
+
 function getSignature() {
   return nodegit.Signature.now(
       'Polymer Format Bot', 'format-bot@polymer-project.org');
@@ -367,38 +383,28 @@ function createPullRequest(element, head, base, assignee) {
   });
 }
 
-let GITHUB_TOKEN;
-try {
-  GITHUB_TOKEN = fs.readFileSync('token', 'utf8').trim();
-} catch(e) {
-  console.error(
-`
-You need to create a github token and place it in a file named 'token'.
-The token only needs the 'public repos' permission.
+function connectToGithub() {
+  const github = new GitHubApi({
+      version: "3.0.0",
+      protocol: "https",
+      cachedb: './.github-cachedb',
+      validateCache: true
+  });
 
-Generate a token here:   https://github.com/settings/tokens
-`
-  )
-  process.exit(1);
+  github.authenticate({
+    type: 'oauth',
+    token: GITHUB_TOKEN
+  });
+  return github;
 }
 
 
-console.log('Discovering repos in PolymerElements...');
-
-
-const github = new GitHubApi({
-    version: "3.0.0",
-    protocol: "https",
-    cachedb: './.github-cachedb',
-    validateCache: true
-});
-
-github.authenticate({
-  type: 'oauth',
-  token: GITHUB_TOKEN
-});
+const github = connectToGithub();
 
 let user;
+
+console.log('Discovering repos in PolymerElements...');
+
 
 Promise.resolve().then(() => {
   return promisify(rimraf)('repos');
