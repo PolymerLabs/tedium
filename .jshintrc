@@ -1,0 +1,7 @@
+{
+  "node": true,
+  "esnext": true,
+  "unused": true,
+  "strict": true,
+  "varstmt": true
+}
