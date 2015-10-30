@@ -19,7 +19,7 @@ The token only needs the 'public repos' permission.
 
 Generate a token here:   https://github.com/settings/tokens
 
-### Running tedium
+## Running tedium
 
 After that, just `node tedium.js` will do the right thing.
 
