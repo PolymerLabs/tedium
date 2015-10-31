@@ -224,7 +224,7 @@ ${behavior.desc}
       element.dirty = true;
       return element.repo.createCommitOnHead(
             ['README.md'], getSignature(), getSignature(),
-            'Autogenerate README file.');
+            '[skip ci] Autogenerate README file.');
     }
   });
 }
@@ -264,9 +264,9 @@ If you edit this file, your changes will get overridden :)
   }
   fs.writeFileSync(pathToExistingGuide, contributionGuideContents, 'utf8');
   element.dirty = true;
-  let commitMessage = 'Update contribution guide';
+  let commitMessage = '[skip ci] Update contribution guide';
   if (!guideExists) {
-    commitMessage = 'Create contribution guide';
+    commitMessage = '[skip ci] Create contribution guide';
   }
   return element.repo.createCommitOnHead(
         ['CONTRIBUTING.md'], getSignature(), getSignature(),
