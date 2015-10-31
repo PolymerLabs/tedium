@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A bot for doing mass changes to github repos for the Polymer team",
   "main": "tedium.js",
+  "bin": "tedium.js",
   "scripts": {
     "test": "jshint *.js",
     "test:watch": "watch 'npm test' ./"
@@ -25,6 +26,8 @@
     "github-cache": "^1.1.0",
     "hydrolysis": "^1.19.3",
     "nodegit": "^0.5.0",
+    "nomnom": "^1.8.1",
+    "pad": "^1.0.0",
     "progress": "^1.1.8",
     "promisify-node": "^0.2.1",
     "rimraf": "^2.4.3"

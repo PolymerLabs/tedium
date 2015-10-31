@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /**
  * @license
  * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
@@ -9,11 +11,11 @@
  */
 
 /**
- * This file contains the main flow for the bot. i.e. discovering and checking
- * out repos, noticing if they've changed, and pushing those changes back to
- * github if needed.
+ * This file contains the main flow for the bot. i.e. discovering and cloning
+ * repos, letting cleanup-passes run, noticing if anything's changed, and
+ * pushing those changes back to github if needed.
  *
- * The actual changes that the bot does are in cleanup-passes.
+ * The actual changes that the bot does are in cleanup-passes.js
  */
 
 
@@ -27,7 +29,25 @@ const path = require('path');
 const ProgressBar = require('progress');
 const rimraf = require('rimraf');
 const cleanup = require('./cleanup-passes');
+const hydrolysis = require('hydrolysis');
+const pad = require('pad');
+const nomnomLib = require('nomnom');
+const nomnom = nomnomLib();
+nomnom.script('tedium');
 
+nomnom.option('max_changes', {
+  abbr: 'c',
+  default: 0,
+  callback(max_changes) {
+    if (!/^\d+$/.test(max_changes)) {
+      return "max_changes must be an integer";
+    }
+  },
+  transform(changes_str) {
+     return parseInt(changes_str, 0);
+  }
+});
+const opts = nomnom.parse();
 
 let GITHUB_TOKEN;
 
@@ -47,29 +67,39 @@ Generate a token here:   https://github.com/settings/tokens
 
 const github = connectToGithub();
 
+const progressMessageWidth = 40;
+const progressBarWidth = 45;
 
 function getRepos() {
   const per_page = 100;
   const repos = [];
   const getFromOrg = promisify(github.repos.getFromOrg);
-  return Promise.resolve().then(() => {
-    function getReposFromPageOnward(page) {
-      return getFromOrg({org: 'PolymerElements', per_page, page}).then((results) => {
-        repos.push.apply(repos, results);
-        if (results.length === per_page) {
-          return getReposFromPageOnward(page + 1);
-        }
-        return repos;
-      });
-    }
+  const promises = [];
+  function getReposFromPageOnward(page) {
+    return getFromOrg({org: 'PolymerElements', per_page, page}).then((results) => {
+      repos.push.apply(repos, results);
+      if (results.length === per_page) {
+        return getReposFromPageOnward(page + 1);
+      }
+      return repos;
+    });
+  }
 
-    return getReposFromPageOnward(0);
-  });
+  // First get the Polymer repo, then get all of the PolymerElements repos.
+  promises.push(promisify(github.repos.get)({user: 'Polymer', repo: 'polymer'})
+    .then((repo) => {
+      repos.push(repo);
+    }));
+  promises.push(getReposFromPageOnward(0));
+
+  return promiseAllWithProgress(
+      promises, 'Discovering repos in PolymerElements...').then(() => repos);
 }
 
 function promiseAllWithProgress(promises, label) {
-  const progressBar = new ProgressBar(`${label} [:bar] :percent`, {
-    total: promises.length});
+  const progressBar = new ProgressBar(
+    `${pad(label, progressMessageWidth)} [:bar] :percent`,
+    {total: promises.length, width: progressBarWidth});
   for (const promise of promises) {
     promise.then(() => progressBar.tick(), () => progressBar.tick());
   }
@@ -102,12 +132,13 @@ function checkoutNewBranch(repo, branchName) {
 }
 
 let elementsPushed = 0;
-const allowedPushes = 100;
+let pushesDenied = 0;
 function pushIsAllowed() {
-  if (elementsPushed < allowedPushes) {
+  if (elementsPushed < opts.max_changes) {
     elementsPushed++;
     return true;
   }
+  pushesDenied++;
   return false;
 }
 
@@ -138,7 +169,7 @@ function pushBranch(element, localBranchName, remoteBranchName) {
         ["refs/heads/" + localBranchName + ":refs/heads/" + remoteBranchName],
         {
           callbacks: {
-            credentials: function() {
+            credentials() {
               return nodegit.Cred.userpassPlaintextNew(
                   GITHUB_TOKEN, "x-oauth-basic");
             }
@@ -181,12 +212,52 @@ function connectToGithub() {
   return github;
 }
 
+function analyzeRepos() {
+  const dirs = fs.readdirSync('repos/');
+  const htmlFiles = [];
 
+  for (const dir of dirs) {
+    for (const fn of fs.readdirSync(path.join('repos', dir))) {
+      if (/demo|index\.html|dependencies\.html/.test(fn) ||
+          !fn.endsWith('.html')) {
+        continue;
+      }
+      htmlFiles.push(path.join('repos', dir, fn));
+    }
+  }
+
+  function filter(repo) {
+    return !cleanup.existsSync(repo);
+  }
+
+  // This code is conceptually simple, it's only complex due to ordering
+  // and the progress bar. Basically we call analyzer.metadataTree on each
+  // html file in sequence, then finally call analyzer.annotate() and return.
+  return hydrolysis.Analyzer.analyze('repos/polymer/polymer.html', {filter})
+    .then((analyzer) => {
+      let promise = Promise.resolve();
+      const progressBar = new ProgressBar(`:msg [:bar] :percent`, {
+        total: htmlFiles.length + 1, width: progressBarWidth});
+
+      for (const htmlFile of htmlFiles) {
+        promise = promise.then(() => {
+          return analyzer.metadataTree(htmlFile).then(() => {
+            const msg = pad(`Analyzing ${htmlFile.slice(6)}`,
+                            progressMessageWidth, {strip: true});
+            progressBar.tick({msg});
+          });
+        });
+      }
+      return promise.then(() => {
+        progressBar.tick({
+            msg: pad('Analyzing with hydrolysis...', progressMessageWidth)});
+        analyzer.annotate();
+        return analyzer;
+      });
+    });
+}
 
 let user;
-
-console.log('Discovering repos in PolymerElements...');
-
 
 Promise.resolve().then(() => {
   return promisify(rimraf)('repos');
@@ -203,13 +274,14 @@ Promise.resolve().then(() => {
   const promises = [];
 
   for (const ghRepo of ghRepos) {
-    promises.push(rateLimit(100).then(() => {
+    promises.push(Promise.resolve().then(() => {
       const targetDir = path.join('repos', ghRepo.name);
       let repoPromise;
       if (cleanup.existsSync(targetDir)) {
         repoPromise = nodegit.Repository.open(targetDir);
       } else {
-        repoPromise = nodegit.Clone.clone(ghRepo.clone_url, targetDir, null);
+        repoPromise = rateLimit(100).then(() =>
+            nodegit.Clone.clone(ghRepo.clone_url, targetDir, null));
       }
       return repoPromise.then((repo) => ({
           repo: repo, dir: targetDir, ghRepo: ghRepo}));
@@ -217,7 +289,14 @@ Promise.resolve().then(() => {
     );
   }
 
-  return promiseAllWithProgress(promises, 'Checking out repos...');
+  return promiseAllWithProgress(promises, 'Cloning repos...');
+}).then((elements) => {
+  return analyzeRepos().then((analyzer) => {
+    for (const element of elements) {
+      element.analyzer = analyzer;
+    }
+    return elements;
+  });
 }).then((elements) => {
   const promises = [];
 
@@ -225,6 +304,7 @@ Promise.resolve().then(() => {
     'repos/style-guide',
     'repos/test-all',
     'repos/ContributionGuide',
+    'repos/polymer',
 
     // Temporary, because of a weird unknown 403?:
     'repos/paper-listbox',
@@ -238,6 +318,7 @@ Promise.resolve().then(() => {
     promises.push(
       Promise.resolve()
         .then(checkoutNewBranch.bind(null, element.repo, branchName))
+        .then(rateLimit.bind(null, 0))
         .then(cleanup.bind(null, element))
         .then(pushChanges.bind(null, element, branchName, user.login))
         .catch((err) => {
@@ -245,14 +326,23 @@ Promise.resolve().then(() => {
         })
     );
   }
-  return promiseAllWithProgress(promises, 'Cleaning...');
+  return promiseAllWithProgress(promises, 'Applying transforms...');
 }).then(() => {
-  if (elementsPushed === 0) {
+  console.log();
+  if (elementsPushed === 0 && pushesDenied === 0) {
     console.log('No changes needed!');
-  } else {
+  } else if (pushesDenied === 0) {
     console.log(`Successfully pushed to ${elementsPushed} repos.`);
+  } else if (opts.max_changes === 0) {
+    console.log(`${pushesDenied} changes ready to push. ` +
+                `Call with --max_changes=N to push them up!`)
+  } else {
+    console.log(`Successfully pushed to ${elementsPushed} repos. ` +
+                `${pushesDenied} remain.`);
   }
 }, function(err) {
-  console.error(`\n\n${err}`);
+  console.error('\n\n');
+  console.error(err);
+
   process.exit(1);
 });
