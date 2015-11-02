@@ -31,23 +31,39 @@ const rimraf = require('rimraf');
 const cleanup = require('./cleanup-passes');
 const hydrolysis = require('hydrolysis');
 const pad = require('pad');
-const nomnomLib = require('nomnom');
-const nomnom = nomnomLib();
-nomnom.script('tedium');
-
-nomnom.option('max_changes', {
-  abbr: 'c',
-  default: 0,
-  callback(max_changes) {
-    if (!/^\d+$/.test(max_changes)) {
-      return "max_changes must be an integer";
-    }
+const cliArgs = require("command-line-args");
+const cli = cliArgs([
+  {
+    name: "help",
+    type: Boolean,
+    alias: "h",
+    description: "Print usage."
   },
-  transform(changes_str) {
-     return parseInt(changes_str, 0);
-  }
-});
-const opts = nomnom.parse();
+  {
+    name: "max_changes",
+    type: (x) => {
+      if (!x) {
+        return 0;
+      }
+      if (/^[0-9]+$/.test(x)) {
+        return parseInt(x, 10);
+      }
+      throw new Error(`invalid max changes, expected an integer: ${x}`);
+    },
+    alias: "c",
+    description: "The maximum number of repos to push. Defualt: 0",
+    defaultValue: 0
+  },
+]);
+const opts = cli.parse();
+
+if (opts.help) {
+  console.log(cli.getUsage({
+    header: "tedium is a friendly bot for doing mass changes to Polymer repos!",
+    title: "tedium"
+  }));
+  process.exit(0);
+}
 
 let GITHUB_TOKEN;
 
@@ -335,7 +351,7 @@ Promise.resolve().then(() => {
     console.log(`Successfully pushed to ${elementsPushed} repos.`);
   } else if (opts.max_changes === 0) {
     console.log(`${pushesDenied} changes ready to push. ` +
-                `Call with --max_changes=N to push them up!`)
+                `Call with --max_changes=N to push them up!`);
   } else {
     console.log(`Successfully pushed to ${elementsPushed} repos. ` +
                 `${pushesDenied} remain.`);
