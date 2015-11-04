@@ -103,6 +103,7 @@ function getRepos() {
   const getFromOrg = promisify(github.repos.getFromOrg);
   const promises = [];
   function getReposFromPageOnward(page) {
+    page = page || 0;
     return getFromOrg({org: 'PolymerElements', per_page, page}).then((results) => {
       repos.push.apply(repos, results);
       if (results.length === per_page) {
@@ -364,7 +365,7 @@ function reportOnChangesMade() {
     if (elements.length === 0) {
       continue;
     }
-    console.log('\n', message);
+    console.log('\n' + message);
     for (const element of elements) {
       console.log(`    ${element.dir}`);
     }
@@ -454,7 +455,7 @@ Promise.resolve().then(() => {
     console.log(`Successfully pushed to ${elementsPushed} repos. ` +
                 `${pushesDenied} remain.`);
   }
-}, function(err) {
+}).catch(function(err) {
   console.error('\n\n');
   console.error(err);
 
