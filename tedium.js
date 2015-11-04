@@ -16,6 +16,13 @@
  * pushing those changes back to github if needed.
  *
  * The actual changes that the bot does are in cleanup-passes.js
+ *
+ * Note that after the script is run, it leaves git repos for all the elements
+ * it dealt with in the repos/ directory. This can be useful for examining
+ * changes that would be pushed up, or investingating failures.
+ *
+ * However, don't store anything in the repos/ directory that you care about,
+ * because tedium deletes it when it starts up.
  */
 
 
@@ -86,6 +93,10 @@ const github = connectToGithub();
 const progressMessageWidth = 40;
 const progressBarWidth = 45;
 
+/**
+ * Returns a Promise of a list of Polymer github repos to automatically
+ * cleanup / transform.
+ */
 function getRepos() {
   const per_page = 100;
   const repos = [];
@@ -112,19 +123,32 @@ function getRepos() {
       promises, 'Discovering repos in PolymerElements...').then(() => repos);
 }
 
+/**
+ * Like Promise.all, but also displays a progress bar that fills as the
+ * promises resolve. The label is a helpful string describing the operation
+ * that the user is waiting on.
+ */
 function promiseAllWithProgress(promises, label) {
   const progressBar = new ProgressBar(
     `${pad(label, progressMessageWidth)} [:bar] :percent`,
     {total: promises.length, width: progressBarWidth});
   for (const promise of promises) {
-    promise.then(() => progressBar.tick(), () => progressBar.tick());
+    Promise.resolve(promise).then(
+        () => progressBar.tick(), () => progressBar.tick());
   }
   return Promise.all(promises);
 }
 
-// Call this as fast as you want, each time it returns a new promise that will
-// resolve only after a delay, and only after every other promise returned by
-// rateLimit has resolved.
+/**
+ * Returns a promise that resolves after a delay. The more often it's been
+ * called recently, the longer the delay.
+ *
+ * This is useful for stuff like github write APIs, where they don't like it
+ * if you do many writes in parallel.
+ *
+ *     rateLimit().then(() => doAGithubWrite());
+ *
+ */
 let rateLimit = (function() {
   let previousPromise = Promise.resolve();
   return function rateLimit(delay) {
@@ -138,7 +162,11 @@ let rateLimit = (function() {
   };
 })();
 
-
+/**
+ * Creates a branch with the given name on the given repo.
+ *
+ * returns a promise of the nodegit Branch object for the new branch.
+ */
 function checkoutNewBranch(repo, branchName) {
   return repo.getHeadCommit().then((commit) => {
     return nodegit.Branch.create(repo, branchName, commit, false);
@@ -149,6 +177,13 @@ function checkoutNewBranch(repo, branchName) {
 
 let elementsPushed = 0;
 let pushesDenied = 0;
+/**
+ * Will return true at most opts.max_changes times. After that it will always
+ * return false.
+ *
+ * Counts how many times both happen.
+ * TODO(rictic): this should live in a class rather than as globals.
+ */
 function pushIsAllowed() {
   if (elementsPushed < opts.max_changes) {
     elementsPushed++;
@@ -158,11 +193,21 @@ function pushIsAllowed() {
   return false;
 }
 
+/**
+ * Will push the given element at the given branch name up to github if needed.
+ *
+ * Depending on whether the element's changes need review, it will either
+ * push directly to master, or push to a branch with the same name as the local
+ * branch, then create a PR and assign it to `assignee`.
+ *
+ * Returns a promise.
+ */
 function pushChanges(element, localBranchName, assignee) {
   if (!element.dirty) {
     return Promise.resolve();
   }
   if (!pushIsAllowed()) {
+    element.pushDenied = true;
     return Promise.resolve();
   }
   let remoteBranchName = 'master';
@@ -175,9 +220,18 @@ function pushChanges(element, localBranchName, assignee) {
     return pushPromise.then(createPullRequest.bind(
           null, element, localBranchName, 'master', assignee));
   }
-  return pushPromise;
+  return pushPromise.then(() => element.pushSucceeded = true, (e) => {
+    element.pushFailed = true;
+    throw e;
+  });
 }
 
+/**
+ * Pushes the given element's local branch name up to
+ * the remote branch name on github.
+ *
+ * returns a promise
+ */
 function pushBranch(element, localBranchName, remoteBranchName) {
   return element.repo.getRemote("origin")
     .then(function(remote) {
@@ -195,6 +249,10 @@ function pushBranch(element, localBranchName, remoteBranchName) {
     });
 }
 
+/**
+ * Creates a pull request to merge the branch identified by `head` into the
+ * branch identified by `base`, then assign the new pull request to `asignee`.
+ */
 function createPullRequest(element, head, base, assignee) {
   const user = element.ghRepo.owner.login;
   const repo = element.ghRepo.name;
@@ -213,6 +271,9 @@ function createPullRequest(element, head, base, assignee) {
   });
 }
 
+/**
+ * Returns an authenticated github connection.
+ */
 function connectToGithub() {
   const github = new GitHubApi({
       version: "3.0.0",
@@ -228,6 +289,12 @@ function connectToGithub() {
   return github;
 }
 
+
+/**
+ * Analyzes all of the HTML in 'repos/*' with hydrolysis.
+ *
+ * Returns a promise of the hydrolysis.Analyzer with all of the info loaded.
+ */
 function analyzeRepos() {
   const dirs = fs.readdirSync('repos/');
   const htmlFiles = [];
@@ -273,8 +340,36 @@ function analyzeRepos() {
     });
 }
 
-let user;
+/**
+ * Should be called after everything is done. Looks through the elements and
+ * reports which ones would be pushed,
+ */
+function reportOnChangesMade() {
+  const pushedElements = elements.filter((e) => e.pushSucceeded);
+  const failedElements = elements.filter((e) => e.pushFailed);
+  const deniedElements = elements.filter((e) => e.pushDenied);
 
+  const messageAndElements = [
+    ['Elements that would have been pushed:', deniedElements],
+    ['Elements pushed successfully:', pushedElements],
+    ['Elements that I tried to push that FAILED:', failedElements],
+  ];
+
+  for (const mAndE of messageAndElements) {
+    const message = mAndE[0];
+    const elements = mAndE[1];
+    if (elements.length === 0) {
+      continue;
+    }
+    console.log('\n', message);
+    for (const element of elements) {
+      console.log(`    ${element.dir}`);
+    }
+  }
+}
+
+let user;
+let elements;
 Promise.resolve().then(() => {
   return promisify(rimraf)('repos');
 }).then(() => {
@@ -306,7 +401,8 @@ Promise.resolve().then(() => {
   }
 
   return promiseAllWithProgress(promises, 'Cloning repos...');
-}).then((elements) => {
+}).then((elementsResult) => {
+  elements = elementsResult;
   return analyzeRepos().then((analyzer) => {
     for (const element of elements) {
       element.analyzer = analyzer;
@@ -343,7 +439,8 @@ Promise.resolve().then(() => {
     );
   }
   return promiseAllWithProgress(promises, 'Applying transforms...');
-}).then(() => {
+}).then(reportOnChangesMade, (e) => {reportOnChangesMade(); throw e}
+).then(() => {
   console.log();
   if (elementsPushed === 0 && pushesDenied === 0) {
     console.log('No changes needed!');

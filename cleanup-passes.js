@@ -271,6 +271,9 @@ function getSignature() {
       'Polymer Format Bot', 'format-bot@polymer-project.org');
 }
 
+/**
+ * Synchronously determines whether the given file exists.
+ */
 function existsSync(fn) {
   try {
     fs.statSync(fn);
