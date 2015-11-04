@@ -340,6 +340,9 @@ function analyzeRepos() {
     });
 }
 
+let user;
+let elements;
+
 /**
  * Should be called after everything is done. Looks through the elements and
  * reports which ones would be pushed,
@@ -368,8 +371,6 @@ function reportOnChangesMade() {
   }
 }
 
-let user;
-let elements;
 Promise.resolve().then(() => {
   return promisify(rimraf)('repos');
 }).then(() => {
@@ -439,7 +440,7 @@ Promise.resolve().then(() => {
     );
   }
   return promiseAllWithProgress(promises, 'Applying transforms...');
-}).then(reportOnChangesMade, (e) => {reportOnChangesMade(); throw e}
+}).then(reportOnChangesMade, (e) => {reportOnChangesMade(); throw e;}
 ).then(() => {
   console.log();
   if (elementsPushed === 0 && pushesDenied === 0) {
