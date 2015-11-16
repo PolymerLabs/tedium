@@ -61,12 +61,17 @@ function cleanupBower(element) {
         JSON.stringify(bowerConfig, null, 2) + '\n', 'utf8');
   }
 
+  let bowerConfig = null;
+  const bowerPath = path.join(element.dir, 'bower.json');
   return Promise.resolve().then(() => {
-    const bowerPath = path.join(element.dir, 'bower.json');
     if (!existsSync(bowerPath)) {
-      throw new Error('no bower.json');
+      return null; // no bower file to cleanup!
     }
-    const bowerConfig = JSON.parse(fs.readFileSync(bowerPath, 'utf8'));
+    bowerConfig = JSON.parse(fs.readFileSync(bowerPath, 'utf8'));
+  }).then(() => {
+    if (!bowerConfig) {
+      return null;
+    }
 
     // Clean up nonexistant bower file
     if (!bowerConfig.main || bowerConfig.main.length === 0) {
@@ -92,7 +97,19 @@ function cleanupBower(element) {
           ['bower.json'], getSignature(), getSignature(),
           'Convert bower main from array to string.').then(() => element);
     }
+  }).then(() => {
+    if (!bowerConfig) {
+      return null;
+    }
 
+    if (!bowerConfig.ignore) {
+      bowerConfig.ignore = [];
+      writeToBower(bowerPath, bowerConfig);
+      element.dirty = true;
+      return element.repo.createCommitOnHead(
+          ['bower.json'], getSignature(), getSignature(),
+          'Add an ignore property to bower.json.').then(() => element);
+    }
   });
 }
 
