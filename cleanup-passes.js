@@ -11,7 +11,6 @@
 'use strict';
 
 const fs = require('fs');
-const hydrolysis = require('hydrolysis');
 const nodegit = require('nodegit');
 const path = require('path');
 
@@ -32,6 +31,8 @@ const path = require('path');
  *       docs: https://developer.github.com/v3/repos/#get
  *   repo: a nodegit Repository object. Useful for modifying the on-disk
  *       git repo
+ *   analyzer: a hydrolysis Analyzer for *all* elements in the PolymerElements
+ *       org and their dependencies.
  *   dirty: set this to true if you make changes to the repo that need to be
  *       pushed.
  *   needsReview: set this to true if your changes need human review.
@@ -95,6 +96,7 @@ function cleanupBower(element) {
   });
 }
 
+
 /**
  * Generates README.md for the element, unless it's in the blacklist.
  */
@@ -126,29 +128,19 @@ function generateReadme(element) {
   if (manualReadmeRepos.has(element.dir)) {
     return Promise.resolve();
   }
-  const implementationFiles = [];
+  const implementationFiles = new Set();
   return Promise.resolve().then(() => {
-    const promises = [];
-    const allFiles = fs.readdirSync(element.dir);
-    for (const filename of allFiles) {
-      const fullPath = path.join(element.dir, filename);
-      if (/\.html$/.test(filename) && !/(index|demo)/.test(filename)) {
-        implementationFiles.push(filename);
-        promises.push(
-          hydrolysis.Analyzer.analyze(fullPath)
-            .then((analyzer) => ({filename, analyzer}))
-        );
-      }
-    }
-    return Promise.all(promises);
-  }).then((results) => {
     const elementsByTagName = {};
     const behaviorsByName = {};
-    for (const result of results) {
-      for (const element of result.analyzer.elements) {
-        elementsByTagName[element.is] = element;
+    for (const analyzedElement of element.analyzer.elements) {
+      if (path.dirname(analyzedElement.contentHref) === element.dir) {
+        implementationFiles.add(path.basename(analyzedElement.contentHref));
+        elementsByTagName[analyzedElement.is] = analyzedElement;
       }
-      for (const behavior of result.analyzer.behaviors) {
+    }
+    for (const behavior of element.analyzer.behaviors) {
+      if (path.dirname(behavior.contentHref) === element.dir) {
+        implementationFiles.add(path.basename(behavior.contentHref));
         behaviorsByName[behavior.is] = behavior;
       }
     }
@@ -156,7 +148,7 @@ function generateReadme(element) {
 <!---
 
 This README is automatically generated from the comments in these files:
-${implementationFiles.join('  ')}
+${Array.from(implementationFiles).sort().join('  ')}
 
 Edit those files, and our readme bot will duplicate them over here!
 Edit this file, and the bot will squash your changes :)
@@ -279,6 +271,9 @@ function getSignature() {
       'Polymer Format Bot', 'format-bot@polymer-project.org');
 }
 
+/**
+ * Synchronously determines whether the given file exists.
+ */
 function existsSync(fn) {
   try {
     fs.statSync(fn);
