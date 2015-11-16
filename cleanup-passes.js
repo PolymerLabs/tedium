@@ -64,7 +64,7 @@ function cleanupBower(element) {
   return Promise.resolve().then(() => {
     const bowerPath = path.join(element.dir, 'bower.json');
     if (!existsSync(bowerPath)) {
-      throw new Error('no bower.json');
+      return null; // nothing to do
     }
     const bowerConfig = JSON.parse(fs.readFileSync(bowerPath, 'utf8'));
 
@@ -183,7 +183,7 @@ Edit this file, and the bot will squash your changes :)
     for (const tagName of tagNames) {
       const analyzedElement = elementsByTagName[tagName];
 
-      if (analyzedElement.desc.trim() === '') {
+      if (!analyzedElement.desc || analyzedElement.desc.trim() === '') {
         readmeContents += `\n<!-- No docs for <${tagName}> found. -->\n`;
         continue;
       }
@@ -197,7 +197,7 @@ ${analyzedElement.desc}
     for (const name in behaviorsByName) {
       const behavior = behaviorsByName[name];
 
-      if (behavior.desc.trim() === '') {
+      if (!behavior.desc || behavior.desc.trim() === '') {
         readmeContents += `\n<!-- No docs for ${name} found. -->\n`;
         continue;
       }
@@ -210,7 +210,10 @@ ${behavior.desc}
     }
 
     const readmePath = path.join(element.dir, 'README.md');
-    const oldContents = fs.readFileSync(readmePath, 'utf8');
+    let oldContents = '';
+    if (existsSync(readmePath)) {
+      oldContents = fs.readFileSync(readmePath, 'utf8');
+    }
     if (oldContents !== readmeContents) {
       fs.writeFileSync(readmePath, readmeContents, 'utf8');
       element.dirty = true;
