@@ -47,6 +47,7 @@ function cleanup(element) {
       .then(cleanupBower.bind(null, element))
       .then(generateReadme.bind(null, element))
       .then(generateContributionGuide.bind(null, element))
+      .then(cleanupTravisConfig.bind(null, element))
       ;
 }
 
@@ -283,6 +284,33 @@ If you edit this file, your changes will get overridden :)
   return element.repo.createCommitOnHead(
         ['CONTRIBUTING.md'], getSignature(), getSignature(),
         commitMessage);
+}
+
+function cleanupTravisConfig(element) {
+  const yaml = require('js-yaml');
+  const travisConfigPath = path.join(element.dir, '.travis.yml');
+
+  if (!existsSync(travisConfigPath)) {
+    return Promise.resolve();
+  }
+
+  const travisConfigBlob = fs.readFileSync(travisConfigPath, 'utf-8');
+
+  let travis = yaml.safeLoad(travisConfigBlob);
+
+  // update travis config
+
+  const updatedTravisConfigBlob = yaml.safeDump(travis);
+
+  if (travisConfigBlob !== updatedTravisConfigBlob) {
+    fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, 'utf-8');
+    element.dirty = true;
+    const commitMessage = '[skip ci] Update travis config';
+    return element.repo.createCommitOnHead(
+      ['.travis.yml'], getSignature(), getSignature(),
+      commitMessage
+    );
+  }
 }
 
 // Generates a git commit signature for the bot.

@@ -58,7 +58,7 @@ const cli = cliArgs([
       throw new Error(`invalid max changes, expected an integer: ${x}`);
     },
     alias: "c",
-    description: "The maximum number of repos to push. Defualt: 0",
+    description: "The maximum number of repos to push. Default: 0",
     defaultValue: 0
   },
 ]);
