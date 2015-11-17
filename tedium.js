@@ -231,10 +231,10 @@ function pushChanges(element, localBranchName, assignee) {
   if (element.needsReview) {
     remoteBranchName = localBranchName;
   }
-  const pushPromise = Promise.resolve()
+  let pushPromise = Promise.resolve()
       .then(pushBranch.bind(null, element, localBranchName, remoteBranchName));
   if (element.needsReview) {
-    return pushPromise.then(createPullRequest.bind(
+    pushPromise = pushPromise.then(createPullRequest.bind(
           null, element, localBranchName, 'master', assignee));
   }
   return pushPromise.then(() => element.pushSucceeded = true, (e) => {
