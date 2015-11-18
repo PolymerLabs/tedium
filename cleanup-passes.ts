@@ -10,10 +10,55 @@
 
 'use strict';
 
-const fs = require('fs');
-const nodegit = require('nodegit');
-const path = require('path');
+import * as fs from 'fs';
+import * as nodegit from 'nodegit';
+import * as path from 'path';
+import {Repo} from 'github-cache';
+import {Analyzer} from 'hydrolysis';
 
+export interface ElementRepo {
+  /**
+   * A relative path like 'repos/paper-input' that's points to a
+   * directory that contains a pristine checkout of the element as it
+   * exists at master.
+   */
+  dir: string;
+  /**
+   * Metadata about the elements' github repo.
+   */
+  ghRepo: Repo;
+  /**
+   * The git repo to commit to.
+   */
+  repo: nodegit.Repository;
+  /**
+   * a hydrolysis Analyzer for *all* elements in the PolymerElements
+   * org and their dependencies.
+   */
+  analyzer: Analyzer;
+
+  /**
+   * If true, commits made to the repo will be pushed.
+   */
+  dirty?: boolean;
+  /**
+   * True if the changes need human review.
+   *
+   * If true, all changes made to the element will go out into a PR that
+   * will be assigned to you. otherwise the changes will be pushed  directly
+   * to master. Has no effect if dirty is false.
+   */
+  needsReview?: boolean;
+  pushDenied?: boolean;
+  pushSucceeded?: boolean;
+  pushFailed?: boolean;
+}
+
+const cleanupSteps : Array<(element:ElementRepo)=>Promise<any>> = [
+  cleanupBower,
+  generateReadme,
+  generateContributionGuide
+];
 
 /**
  * The meat of the implementation. If any cleanup step makes any changes it
@@ -23,45 +68,28 @@ const path = require('path');
  * Each cleanup step is given an object that contains a ton of info about an
  * element repo.
  *
- * Properties of element:
- *   dir: a string, like 'repos/paper-input' that's a relative path to a
- *       directory that contains a pristine checkout of the element as it
- *       exists at master.
- *   ghRepo: metadata about the elements' github repo.
- *       docs: https://developer.github.com/v3/repos/#get
- *   repo: a nodegit Repository object. Useful for modifying the on-disk
- *       git repo
- *   analyzer: a hydrolysis Analyzer for *all* elements in the PolymerElements
- *       org and their dependencies.
- *   dirty: set this to true if you make changes to the repo that need to be
- *       pushed.
- *   needsReview: set this to true if your changes need human review.
- *       if true, all changes made to the element will go out into a PR that
- *       will be assigned to you. otherwise the changes will be pushed directly
- *       to master. has no effect if dirty is false.
- *
- * To add a cleanup step, just add it to this promise chain.
+ * To add a cleanup step, just add it to the array of steps.
  */
-function cleanup(element) {
-  return Promise.resolve()
-      .then(cleanupBower.bind(null, element))
-      .then(generateReadme.bind(null, element))
-      .then(generateContributionGuide.bind(null, element))
-      ;
+export function cleanup(element : ElementRepo):Promise<any> {
+  let result : Promise<any> = Promise.resolve();
+  for (const step of cleanupSteps) {
+    result = result.then(() => step(element));
+  }
+  return result;
 }
 
 /**
  * Cleans up a number of common bower problems, like no "main" attribute,
  * "main" being an array rather than a string, etc.
  */
-function cleanupBower(element) {
+function cleanupBower(element : ElementRepo) {
   // Write the bower config object out to the given path
-  function writeToBower(bowerPath, bowerConfig) {
+  function writeToBower(bowerPath: string, bowerConfig: Object) {
     fs.writeFileSync(bowerPath,
         JSON.stringify(bowerConfig, null, 2) + '\n', 'utf8');
   }
 
-  let bowerConfig = null;
+  let bowerConfig: Object = null;
   const bowerPath = path.join(element.dir, 'bower.json');
   return Promise.resolve().then(() => {
     if (!existsSync(bowerPath)) {
@@ -74,41 +102,41 @@ function cleanupBower(element) {
     }
 
     // Clean up nonexistant bower file
-    if (!bowerConfig.main || bowerConfig.main.length === 0) {
+    if (!bowerConfig['main'] || bowerConfig['main'].length === 0) {
       const elemFile = path.basename(element.dir) + '.html';
 
       if (existsSync(path.join(element.dir, elemFile))) {
-        bowerConfig.main = elemFile;
+        bowerConfig['main'] = elemFile;
         writeToBower(bowerPath, bowerConfig);
         element.dirty = true;
         return element.repo.createCommitOnHead(
             ['bower.json'], getSignature(), getSignature(),
-            'Add bower main file.').then(() => element);
+            'Add bower main file.');
       }
       return null; // couldn't generate a bower main :(
     }
 
     // Clean up an array bower file:
-    if (Array.isArray(bowerConfig.main) && bowerConfig.main.length === 1) {
-      bowerConfig.main = bowerConfig.main[0];
+    if (Array.isArray(bowerConfig['main']) && bowerConfig['main'].length === 1) {
+      bowerConfig['main'] = bowerConfig['main'][0];
       writeToBower(bowerPath, bowerConfig);
       element.dirty = true;
       return element.repo.createCommitOnHead(
           ['bower.json'], getSignature(), getSignature(),
-          'Convert bower main from array to string.').then(() => element);
+          'Convert bower main from array to string.');
     }
   }).then(() => {
     if (!bowerConfig) {
       return null;
     }
 
-    if (!bowerConfig.ignore) {
-      bowerConfig.ignore = [];
+    if (!bowerConfig['ignore']) {
+      bowerConfig['ignore'] = [];
       writeToBower(bowerPath, bowerConfig);
       element.dirty = true;
       return element.repo.createCommitOnHead(
           ['bower.json'], getSignature(), getSignature(),
-          'Add an ignore property to bower.json.').then(() => element);
+          'Add an ignore property to bower.json.');
     }
   });
 }
@@ -117,7 +145,7 @@ function cleanupBower(element) {
 /**
  * Generates README.md for the element, unless it's in the blacklist.
  */
-function generateReadme(element) {
+function generateReadme(element: ElementRepo):Promise<any> {
   const manualReadmeRepos = new Set([
     'repos/molecules',
     'repos/iron-elements',
@@ -200,7 +228,7 @@ Edit this file, and the bot will squash your changes :)
     for (const tagName of tagNames) {
       const analyzedElement = elementsByTagName[tagName];
 
-      if (analyzedElement.desc.trim() === '') {
+      if (!analyzedElement.desc || analyzedElement.desc.trim() === '') {
         readmeContents += `\n<!-- No docs for <${tagName}> found. -->\n`;
         continue;
       }
@@ -214,7 +242,7 @@ ${analyzedElement.desc}
     for (const name in behaviorsByName) {
       const behavior = behaviorsByName[name];
 
-      if (behavior.desc.trim() === '') {
+      if (!behavior.desc || behavior.desc.trim() === '') {
         readmeContents += `\n<!-- No docs for ${name} found. -->\n`;
         continue;
       }
@@ -227,7 +255,10 @@ ${behavior.desc}
     }
 
     const readmePath = path.join(element.dir, 'README.md');
-    const oldContents = fs.readFileSync(readmePath, 'utf8');
+    let oldContents = '';
+    if (existsSync(readmePath)) {
+      oldContents = fs.readFileSync(readmePath, 'utf8');
+    }
     if (oldContents !== readmeContents) {
       fs.writeFileSync(readmePath, readmeContents, 'utf8');
       element.dirty = true;
@@ -239,11 +270,11 @@ ${behavior.desc}
 }
 
 
-let contributionGuideContents = null;
+let contributionGuideContents : string = null;
 /**
  * Generates the CONTRIBUTING.md file for the element.
  */
-function generateContributionGuide(element) {
+function generateContributionGuide(element: ElementRepo): Promise<any> {
   const pathToCanonicalGuide = 'repos/ContributionGuide/CONTRIBUTING.md';
   if (!existsSync(pathToCanonicalGuide)) {
     return Promise.reject(new Error(
@@ -291,7 +322,7 @@ function getSignature() {
 /**
  * Synchronously determines whether the given file exists.
  */
-function existsSync(fn) {
+export function existsSync(fn:string):boolean {
   try {
     fs.statSync(fn);
     return true;
@@ -299,7 +330,3 @@ function existsSync(fn) {
     return false;
   }
 }
-
-
-module.exports = cleanup;
-module.exports.existsSync = existsSync;
