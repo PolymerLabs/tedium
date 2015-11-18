@@ -34,7 +34,7 @@ import * as ProgressBar from 'progress';
 import * as rimraf from 'rimraf';
 import {cleanup,existsSync,ElementRepo} from './cleanup-passes';
 import * as hydrolysis from 'hydrolysis';
-import pad from 'pad';
+import * as pad from 'pad';
 import * as cliArgs from 'command-line-args';
 
 const cli = cliArgs([
@@ -56,7 +56,7 @@ const cli = cliArgs([
       throw new Error(`invalid max changes, expected an integer: ${x}`);
     },
     alias: "c",
-    description: "The maximum number of repos to push. Defualt: 0",
+    description: "The maximum number of repos to push. Default: 0",
     defaultValue: 0
   },
 ]);
@@ -118,8 +118,24 @@ function getRepos():Promise<GitHub.Repo[]> {
     }));
   promises.push(getReposFromPageOnward(0));
 
-  return promiseAllWithProgress(
-      promises, 'Discovering repos in PolymerElements...').then(() => repos);
+  function deduplicateRepos() {
+    // github pagination is... not entirely consistent, and
+    // sometimes gives us duplicate repos.
+    const repoIds = new Set();
+    const dedupedRepos: GitHub.Repo[] = [];
+    for (const repo of repos) {
+      if (repoIds.has(repo.name)) {
+        continue;
+      }
+      repoIds.add(repo.name);
+      dedupedRepos.push(repo);
+    }
+    return dedupedRepos;
+  }
+
+  return promiseAllWithProgress(promises,
+                                'Discovering repos in PolymerElements...')
+      .then(deduplicateRepos);
 }
 
 /**
@@ -437,12 +453,20 @@ function main() {
           .then(cleanup.bind(null, element))
           .then(pushChanges.bind(null, element, branchName, user.login))
           .catch((err) => {
-            throw new Error(`Error updating ${element.dir}:\n${err}`);
+            throw new Error(`Error updating ${element.dir}:\n${err.stack || err}`);
           })
       );
     }
     return promiseAllWithProgress(promises, 'Applying transforms...');
-  }).then(reportOnChangesMade, (e) => {reportOnChangesMade(); throw e;}
+  }).then(
+    reportOnChangesMade,
+    (e) => {
+      // Try to report on changes made, but we may not have gotten far enough
+      // for that to be possible. If not, don't worry about it.
+      try {reportOnChangesMade();} catch(_) {}
+      // Rethrow the error.
+      throw e;
+    }
   ).then(() => {
     console.log();
     if (elementsPushed === 0 && pushesDenied === 0) {
@@ -457,9 +481,9 @@ function main() {
                   `${pushesDenied} remain.`);
     }
   }).catch(function(err) {
+    // Report the error and crash.
     console.error('\n\n');
-    console.error(err);
-
+    console.error(err.stack || err);
     process.exit(1);
   });
 }

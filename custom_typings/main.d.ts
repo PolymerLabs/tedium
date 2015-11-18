@@ -2,7 +2,9 @@ declare module 'pad' {
   interface Options {
     strip: boolean;
   }
-  export default function (s: string, padding: number, options?: Options) : string;
+  function pad(s: string, padding: number, options?: Options) : string;
+  module pad {}
+  export = pad; 
 }
 
 declare module 'github-cache' {

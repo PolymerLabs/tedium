@@ -15,6 +15,7 @@ import * as nodegit from 'nodegit';
 import * as path from 'path';
 import {Repo} from 'github-cache';
 import {Analyzer} from 'hydrolysis';
+import * as yaml from 'js-yaml';
 
 export interface ElementRepo {
   /**
@@ -57,7 +58,8 @@ export interface ElementRepo {
 const cleanupSteps : Array<(element:ElementRepo)=>Promise<any>> = [
   cleanupBower,
   generateReadme,
-  generateContributionGuide
+  generateContributionGuide,
+  cleanupTravisConfig
 ];
 
 /**
@@ -311,6 +313,32 @@ If you edit this file, your changes will get overridden :)
   return element.repo.createCommitOnHead(
         ['CONTRIBUTING.md'], getSignature(), getSignature(),
         commitMessage);
+}
+
+function cleanupTravisConfig(element:ElementRepo):Promise<any> {
+  const travisConfigPath = path.join(element.dir, '.travis.yml');
+
+  if (!existsSync(travisConfigPath)) {
+    return Promise.resolve();
+  }
+
+  const travisConfigBlob = fs.readFileSync(travisConfigPath, 'utf-8');
+
+  let travis = yaml.safeLoad(travisConfigBlob);
+
+  // update travis config
+
+  const updatedTravisConfigBlob = yaml.safeDump(travis);
+
+  if (travisConfigBlob !== updatedTravisConfigBlob) {
+    fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, 'utf-8');
+    element.dirty = true;
+    const commitMessage = '[skip ci] Update travis config';
+    return element.repo.createCommitOnHead(
+      ['.travis.yml'], getSignature(), getSignature(),
+      commitMessage
+    );
+  }
 }
 
 // Generates a git commit signature for the bot.
