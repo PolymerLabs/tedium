@@ -55,7 +55,7 @@ export interface ElementRepo {
   pushFailed?: boolean;
 }
 
-const cleanupSteps : Array<(element:ElementRepo)=>Promise<any>> = [
+const cleanupSteps : Array<(element:ElementRepo)=>Promise<void>> = [
   cleanupBower,
   generateReadme,
   generateContributionGuide,
@@ -72,19 +72,17 @@ const cleanupSteps : Array<(element:ElementRepo)=>Promise<any>> = [
  *
  * To add a cleanup step, just add it to the array of steps.
  */
-export function cleanup(element : ElementRepo):Promise<any> {
-  let result : Promise<any> = Promise.resolve();
+export async function cleanup(element : ElementRepo):Promise<void> {
   for (const step of cleanupSteps) {
-    result = result.then(() => step(element));
+    await step(element);
   }
-  return result;
 }
 
 /**
  * Cleans up a number of common bower problems, like no "main" attribute,
  * "main" being an array rather than a string, etc.
  */
-function cleanupBower(element : ElementRepo) {
+async function cleanupBower(element : ElementRepo):Promise<void> {
   // Write the bower config object out to the given path
   function writeToBower(bowerPath: string, bowerConfig: Object) {
     fs.writeFileSync(bowerPath,
@@ -93,61 +91,58 @@ function cleanupBower(element : ElementRepo) {
 
   let bowerConfig: Object = null;
   const bowerPath = path.join(element.dir, 'bower.json');
-  return Promise.resolve().then(() => {
-    if (!existsSync(bowerPath)) {
-      return null; // no bower file to cleanup!
-    }
-    bowerConfig = JSON.parse(fs.readFileSync(bowerPath, 'utf8'));
-  }).then(() => {
-    if (!bowerConfig) {
-      return null;
-    }
+  if (!existsSync(bowerPath)) {
+    return; // no bower file to cleanup!
+  }
+  bowerConfig = JSON.parse(fs.readFileSync(bowerPath, 'utf8'));
 
-    // Clean up nonexistant bower file
-    if (!bowerConfig['main'] || bowerConfig['main'].length === 0) {
-      const elemFile = path.basename(element.dir) + '.html';
+  if (!bowerConfig) {
+    return; // no bower to cleanup
+  }
 
-      if (existsSync(path.join(element.dir, elemFile))) {
-        bowerConfig['main'] = elemFile;
-        writeToBower(bowerPath, bowerConfig);
-        element.dirty = true;
-        return element.repo.createCommitOnHead(
-            ['bower.json'], getSignature(), getSignature(),
-            'Add bower main file.');
-      }
-      return null; // couldn't generate a bower main :(
-    }
+  // Clean up nonexistant bower file
+  if (!bowerConfig['main'] || bowerConfig['main'].length === 0) {
+    const elemFile = path.basename(element.dir) + '.html';
 
-    // Clean up an array bower file:
-    if (Array.isArray(bowerConfig['main']) && bowerConfig['main'].length === 1) {
-      bowerConfig['main'] = bowerConfig['main'][0];
+    if (existsSync(path.join(element.dir, elemFile))) {
+      bowerConfig['main'] = elemFile;
       writeToBower(bowerPath, bowerConfig);
       element.dirty = true;
-      return element.repo.createCommitOnHead(
+      await element.repo.createCommitOnHead(
           ['bower.json'], getSignature(), getSignature(),
-          'Convert bower main from array to string.');
+          'Add bower main file.');
     }
-  }).then(() => {
-    if (!bowerConfig) {
-      return null;
-    }
+  }
 
-    if (!bowerConfig['ignore']) {
-      bowerConfig['ignore'] = [];
-      writeToBower(bowerPath, bowerConfig);
-      element.dirty = true;
-      return element.repo.createCommitOnHead(
-          ['bower.json'], getSignature(), getSignature(),
-          'Add an ignore property to bower.json.');
-    }
-  });
+  // Clean up an array bower file:
+  if (Array.isArray(bowerConfig['main']) && bowerConfig['main'].length === 1) {
+    bowerConfig['main'] = bowerConfig['main'][0];
+    writeToBower(bowerPath, bowerConfig);
+    element.dirty = true;
+    await element.repo.createCommitOnHead(
+        ['bower.json'], getSignature(), getSignature(),
+        'Convert bower main from array to string.');
+  }
+
+  if (!bowerConfig) {
+    return null;
+  }
+
+  if (!bowerConfig['ignore']) {
+    bowerConfig['ignore'] = [];
+    writeToBower(bowerPath, bowerConfig);
+    element.dirty = true;
+    await element.repo.createCommitOnHead(
+        ['bower.json'], getSignature(), getSignature(),
+        'Add an ignore property to bower.json.');
+  }
 }
 
 
 /**
  * Generates README.md for the element, unless it's in the blacklist.
  */
-function generateReadme(element: ElementRepo):Promise<any> {
+async function generateReadme(element: ElementRepo):Promise<void> {
   const manualReadmeRepos = new Set([
     'repos/molecules',
     'repos/iron-elements',
@@ -173,25 +168,25 @@ function generateReadme(element: ElementRepo):Promise<any> {
     'repos/neon-animation',
   ]);
   if (manualReadmeRepos.has(element.dir)) {
-    return Promise.resolve();
+    return;
   }
   const implementationFiles = new Set();
-  return Promise.resolve().then(() => {
-    const elementsByTagName = {};
-    const behaviorsByName = {};
-    for (const analyzedElement of element.analyzer.elements) {
-      if (path.dirname(analyzedElement.contentHref) === element.dir) {
-        implementationFiles.add(path.basename(analyzedElement.contentHref));
-        elementsByTagName[analyzedElement.is] = analyzedElement;
-      }
+
+  const elementsByTagName = {};
+  const behaviorsByName = {};
+  for (const analyzedElement of element.analyzer.elements) {
+    if (path.dirname(analyzedElement.contentHref) === element.dir) {
+      implementationFiles.add(path.basename(analyzedElement.contentHref));
+      elementsByTagName[analyzedElement.is] = analyzedElement;
     }
-    for (const behavior of element.analyzer.behaviors) {
-      if (path.dirname(behavior.contentHref) === element.dir) {
-        implementationFiles.add(path.basename(behavior.contentHref));
-        behaviorsByName[behavior.is] = behavior;
-      }
+  }
+  for (const behavior of element.analyzer.behaviors) {
+    if (path.dirname(behavior.contentHref) === element.dir) {
+      implementationFiles.add(path.basename(behavior.contentHref));
+      behaviorsByName[behavior.is] = behavior;
     }
-    let readmeContents = `
+  }
+  let readmeContents = `
 <!---
 
 This README is automatically generated from the comments in these files:
@@ -204,71 +199,70 @@ Edit this file, and the bot will squash your changes :)
 
 `;
 
-    if (existsSync(path.join(element.dir, '.travis.yml'))) {
-      readmeContents +=
-        `[![Build Status](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name}.svg?branch=master)](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name})\n\n`;
+  if (existsSync(path.join(element.dir, '.travis.yml'))) {
+    readmeContents +=
+      `[![Build Status](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name}.svg?branch=master)](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name})\n\n`;
+  }
+
+  // These elements are going to have a page in the element catalog.
+  if (/^(gold|platinum|paper|neon|iron|carbon)-/.test(element.ghRepo.name)) {
+    readmeContents += `_[Demo and API Docs](https://elements.polymer-project.org/elements/${element.ghRepo.name})_` + '\n\n';
+  }
+
+  const tagNames = Object.keys(elementsByTagName);
+  // Sort elements alphabetically, except that the element that the repository
+  // is named after should come first.
+  tagNames.sort((l, r) => {
+    if (l === element.ghRepo.name) {
+      return -1;
+    }
+    if (r === element.ghRepo.name) {
+      return 1;
+    }
+    return l.localeCompare(r);
+  });
+
+  for (const tagName of tagNames) {
+    const analyzedElement = elementsByTagName[tagName];
+
+    if (!analyzedElement.desc || analyzedElement.desc.trim() === '') {
+      readmeContents += `\n<!-- No docs for <${tagName}> found. -->\n`;
+      continue;
     }
 
-    // These elements are going to have a page in the element catalog.
-    if (/^(gold|platinum|paper|neon|iron|carbon)-/.test(element.ghRepo.name)) {
-      readmeContents += `_[Demo and API Docs](https://elements.polymer-project.org/elements/${element.ghRepo.name})_` + '\n\n';
-    }
-
-    const tagNames = Object.keys(elementsByTagName);
-    // Sort elements alphabetically, except that the element that the repository
-    // is named after should come first.
-    tagNames.sort((l, r) => {
-      if (l === element.ghRepo.name) {
-        return -1;
-      }
-      if (r === element.ghRepo.name) {
-        return 1;
-      }
-      return l.localeCompare(r);
-    });
-
-    for (const tagName of tagNames) {
-      const analyzedElement = elementsByTagName[tagName];
-
-      if (!analyzedElement.desc || analyzedElement.desc.trim() === '') {
-        readmeContents += `\n<!-- No docs for <${tagName}> found. -->\n`;
-        continue;
-      }
-
-      readmeContents += `
+    readmeContents += `
 ##&lt;${tagName}&gt;
 
 ${analyzedElement.desc}
 `;
+  }
+  for (const name in behaviorsByName) {
+    const behavior = behaviorsByName[name];
+
+    if (!behavior.desc || behavior.desc.trim() === '') {
+      readmeContents += `\n<!-- No docs for ${name} found. -->\n`;
+      continue;
     }
-    for (const name in behaviorsByName) {
-      const behavior = behaviorsByName[name];
 
-      if (!behavior.desc || behavior.desc.trim() === '') {
-        readmeContents += `\n<!-- No docs for ${name} found. -->\n`;
-        continue;
-      }
-
-      readmeContents += `
+    readmeContents += `
 ##${name}
 
 ${behavior.desc}
 `;
-    }
+  }
 
-    const readmePath = path.join(element.dir, 'README.md');
-    let oldContents = '';
-    if (existsSync(readmePath)) {
-      oldContents = fs.readFileSync(readmePath, 'utf8');
-    }
-    if (oldContents !== readmeContents) {
-      fs.writeFileSync(readmePath, readmeContents, 'utf8');
-      element.dirty = true;
-      return element.repo.createCommitOnHead(
-            ['README.md'], getSignature(), getSignature(),
-            '[skip ci] Autogenerate README file.');
-    }
-  });
+  const readmePath = path.join(element.dir, 'README.md');
+  let oldContents = '';
+  if (existsSync(readmePath)) {
+    oldContents = fs.readFileSync(readmePath, 'utf8');
+  }
+  if (oldContents !== readmeContents) {
+    fs.writeFileSync(readmePath, readmeContents, 'utf8');
+    element.dirty = true;
+    await element.repo.createCommitOnHead(
+          ['README.md'], getSignature(), getSignature(),
+          '[skip ci] Autogenerate README file.');
+  }
 }
 
 
@@ -276,11 +270,11 @@ let contributionGuideContents : string = null;
 /**
  * Generates the CONTRIBUTING.md file for the element.
  */
-function generateContributionGuide(element: ElementRepo): Promise<any> {
+async function generateContributionGuide(element: ElementRepo): Promise<void> {
   const pathToCanonicalGuide = 'repos/ContributionGuide/CONTRIBUTING.md';
   if (!existsSync(pathToCanonicalGuide)) {
-    return Promise.reject(new Error(
-        'Couldn\'t find canonical contribution guide. git checkout error?'));
+    throw new Error(
+        'Couldn\'t find canonical contribution guide. git checkout error?');
   }
   if (!contributionGuideContents) {
     contributionGuideContents = `
@@ -302,7 +296,7 @@ If you edit this file, your changes will get overridden :)
     existingGuideContents = fs.readFileSync(pathToExistingGuide, 'utf8');
   }
   if (contributionGuideContents === existingGuideContents) {
-    return Promise.resolve();
+    return;
   }
   fs.writeFileSync(pathToExistingGuide, contributionGuideContents, 'utf8');
   element.dirty = true;
@@ -310,16 +304,16 @@ If you edit this file, your changes will get overridden :)
   if (!guideExists) {
     commitMessage = '[skip ci] Create contribution guide';
   }
-  return element.repo.createCommitOnHead(
+  await element.repo.createCommitOnHead(
         ['CONTRIBUTING.md'], getSignature(), getSignature(),
         commitMessage);
 }
 
-function cleanupTravisConfig(element:ElementRepo):Promise<any> {
+async function cleanupTravisConfig(element:ElementRepo):Promise<void> {
   const travisConfigPath = path.join(element.dir, '.travis.yml');
 
   if (!existsSync(travisConfigPath)) {
-    return Promise.resolve();
+    return;
   }
 
   const travisConfigBlob = fs.readFileSync(travisConfigPath, 'utf-8');
@@ -334,7 +328,7 @@ function cleanupTravisConfig(element:ElementRepo):Promise<any> {
     fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, 'utf-8');
     element.dirty = true;
     const commitMessage = '[skip ci] Update travis config';
-    return element.repo.createCommitOnHead(
+    await element.repo.createCommitOnHead(
       ['.travis.yml'], getSignature(), getSignature(),
       commitMessage
     );
