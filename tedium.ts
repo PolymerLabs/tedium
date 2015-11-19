@@ -107,7 +107,7 @@ async function getRepos():Promise<GitHub.Repo[]> {
 
   // First get the Polymer repo, then get all of the PolymerElements repos.
   const repo : GitHub.Repo = await promisify(github.repos.get)({
-      user: 'Polymer', repo: 'polymer'})
+      user: 'Polymer', repo: 'polymer'});
   progressBar.tick();
   const repos = [repo];
   let page = 0;
@@ -381,7 +381,7 @@ async function _main(elements: ElementRepo[]) {
   await promisify(rimraf)('repos');
   fs.mkdirSync('repos');
 
-  const user: GitHub.User = await promisify(github.user.get)({});
+  const user = await promisify(github.user.get)({});
   const ghRepos = await getRepos();
 
   const promises: Promise<ElementRepo>[] = [];

@@ -1,3 +1,7 @@
+declare interface NodeCallback<T>{
+  (err: any, res:T):any;
+}
+
 declare module 'pad' {
   interface Options {
     strip: boolean;
@@ -14,21 +18,41 @@ declare module 'github-cache' {
     cachedb: string;
     validateCache: boolean;
   }
+  interface CreatePullRequestOpts {
+    user: string;
+    repo: string;
+    title: string;
+    head: string;
+    base: string;
+    body?: string;
+  }
+  interface IssuesEditOpts {
+    headers?: Object;
+    user: string;
+    repo: string;
+    number: number;
+    title?: string;
+    body?: string;
+    assignee?: string;
+    milestone?: number;
+    labels?: string[];
+    state?: string;
+  }
   class GitHubApi {
     constructor(options:Options);
     repos: {
-      getFromOrg():any;
-      get():any;
+      getFromOrg(msg:any, cb:(e:any, repos: GitHubApi.Repo[])=>any):any;
+      get(msg:any, cb:(e:any, repo:GitHubApi.Repo)=>any):void;
     }
     pullRequests: {
-      create():any;
+      create(msg:CreatePullRequestOpts, cb:NodeCallback<GitHubApi.Issue>):any;
     }
     issues: {
-      edit():any;
+      edit(msg:IssuesEditOpts, cb:NodeCallback<GitHubApi.Issue>):any;
     }
     authenticate(credentials: {type: string, token: string}):void;
     user: {
-      get():void;
+      get(msg: {}, cb:(e:any, user:GitHubApi.User)=>any):void;
     }
   }
   module GitHubApi {
@@ -40,12 +64,31 @@ declare module 'github-cache' {
     interface User {
       login: string;
     }
+    interface Issue {
+      number: number;
+      title: string;
+      body: string;
+      assignee: User;
+      milestone: Milestone;
+      state: string;
+      labels: {name: string, color: string, url: string}[];
+      user: User;
+    }
+    interface PullRequest extends Issue {
+
+    }
+    interface Milestone {
+
+    }
   }
   export = GitHubApi;
 }
 
 declare module 'promisify-node' {
-  function promisify(f:Function):(...args:any[]) => Promise<any>
+  function promisify<T>(f:(cb:NodeCallback<T>)=>void): () => Promise<T>;
+  function promisify<A1, T>(f:(a:A1, cb:NodeCallback<T>)=>void): (a:A1) => Promise<T>;
+  function promisify<A1, A2, T>(f:(a:A1, a2:A2, cb:NodeCallback<T>)=>void): (a:A1, a2:A2) => Promise<T>;
+  function promisify<A1, A2, A3, T>(f:(a:A1, a2:A2, a3:A3, cb:NodeCallback<T>)=>void): (a:A1, a2:A2, a3:A3) => Promise<T>;
   module promisify {}
   export = promisify;
 }
