@@ -277,7 +277,7 @@ async function createPullRequest(element:ElementRepo, head:string, base:string, 
     title: 'Automatic cleanup!',
     user, repo, head, base,
   });
-  return promisify(github.issues.edit)({
+  await promisify(github.issues.edit)({
     number: pr.number,
     user, repo,
     assignee,
