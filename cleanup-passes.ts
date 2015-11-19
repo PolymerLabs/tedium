@@ -16,6 +16,10 @@ import * as path from 'path';
 import {Repo} from 'github-cache';
 import {Analyzer} from 'hydrolysis';
 import * as yaml from 'js-yaml';
+import * as dom5 from 'dom5';
+import * as espree from 'espree';
+import * as estree_walker from 'estree-walker';
+import * as escodegen from 'escodegen';
 
 export interface ElementRepo {
   /**
@@ -59,7 +63,8 @@ const cleanupSteps : Array<(element:ElementRepo)=>Promise<void>> = [
   cleanupBower,
   generateReadme,
   generateContributionGuide,
-  cleanupTravisConfig
+  cleanupTravisConfig,
+  addShadowDomTests
 ];
 
 /**
@@ -107,10 +112,7 @@ async function cleanupBower(element : ElementRepo):Promise<void> {
     if (existsSync(path.join(element.dir, elemFile))) {
       bowerConfig['main'] = elemFile;
       writeToBower(bowerPath, bowerConfig);
-      element.dirty = true;
-      await element.repo.createCommitOnHead(
-          ['bower.json'], getSignature(), getSignature(),
-          'Add bower main file.');
+      await makeCommit(element, ['bower.json'], 'Add bower main file.');
     }
   }
 
@@ -118,10 +120,8 @@ async function cleanupBower(element : ElementRepo):Promise<void> {
   if (Array.isArray(bowerConfig['main']) && bowerConfig['main'].length === 1) {
     bowerConfig['main'] = bowerConfig['main'][0];
     writeToBower(bowerPath, bowerConfig);
-    element.dirty = true;
-    await element.repo.createCommitOnHead(
-        ['bower.json'], getSignature(), getSignature(),
-        'Convert bower main from array to string.');
+    await makeCommit(
+        element, ['bower.json'], 'Convert bower main from array to string.');
   }
 
   if (!bowerConfig) {
@@ -131,10 +131,8 @@ async function cleanupBower(element : ElementRepo):Promise<void> {
   if (!bowerConfig['ignore']) {
     bowerConfig['ignore'] = [];
     writeToBower(bowerPath, bowerConfig);
-    element.dirty = true;
-    await element.repo.createCommitOnHead(
-        ['bower.json'], getSignature(), getSignature(),
-        'Add an ignore property to bower.json.');
+    await makeCommit(
+        element, ['bower.json'], 'Add an ignore property to bower.json.');
   }
 }
 
@@ -258,10 +256,8 @@ ${behavior.desc}
   }
   if (oldContents !== readmeContents) {
     fs.writeFileSync(readmePath, readmeContents, 'utf8');
-    element.dirty = true;
-    await element.repo.createCommitOnHead(
-          ['README.md'], getSignature(), getSignature(),
-          '[skip ci] Autogenerate README file.');
+    await makeCommit(
+        element, ['README.md'], '[skip ci] Autogenerate README file.');
   }
 }
 
@@ -299,14 +295,11 @@ If you edit this file, your changes will get overridden :)
     return;
   }
   fs.writeFileSync(pathToExistingGuide, contributionGuideContents, 'utf8');
-  element.dirty = true;
   let commitMessage = '[skip ci] Update contribution guide';
   if (!guideExists) {
     commitMessage = '[skip ci] Create contribution guide';
   }
-  await element.repo.createCommitOnHead(
-        ['CONTRIBUTING.md'], getSignature(), getSignature(),
-        commitMessage);
+  await makeCommit(element, ['CONTRIBUTING.md'], commitMessage);
 }
 
 async function cleanupTravisConfig(element:ElementRepo):Promise<void> {
@@ -316,7 +309,7 @@ async function cleanupTravisConfig(element:ElementRepo):Promise<void> {
     return;
   }
 
-  const travisConfigBlob = fs.readFileSync(travisConfigPath, 'utf-8');
+  const travisConfigBlob = fs.readFileSync(travisConfigPath, 'utf8');
 
   let travis = yaml.safeLoad(travisConfigBlob);
 
@@ -325,21 +318,112 @@ async function cleanupTravisConfig(element:ElementRepo):Promise<void> {
   const updatedTravisConfigBlob = yaml.safeDump(travis);
 
   if (travisConfigBlob !== updatedTravisConfigBlob) {
-    fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, 'utf-8');
-    element.dirty = true;
+    fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, 'utf8');
     const commitMessage = '[skip ci] Update travis config';
-    await element.repo.createCommitOnHead(
-      ['.travis.yml'], getSignature(), getSignature(),
-      commitMessage
-    );
+    await makeCommit(element, ['.travis.yml'], commitMessage);
   }
 }
 
-// Generates a git commit signature for the bot.
-function getSignature() {
-  return nodegit.Signature.now(
-      'Polymer Format Bot', 'format-bot@polymer-project.org');
+async function addShadowDomTests(element:ElementRepo):Promise<void> {
+  const testDir = path.join(element.dir, 'test');
+  if (!existsSync(testDir) || !fs.statSync(testDir).isDirectory()) {
+    return; // nothing to do
+  }
+  const testIndexFile = path.join(testDir, 'index.html');
+  if (!existsSync(testIndexFile)) {
+    return; // nothing to do
+  }
+
+  const contents = fs.readFileSync(testIndexFile, 'utf8');
+  const domTree = dom5.parse(contents);
+  const scripts = dom5.queryAll(domTree, (n) => n.tagName === 'script');
+  let updateNeeded = false;
+  for (const script of scripts) {
+    const data = script.childNodes[0];
+    if (!data || data.nodeName !== '#text') {
+      continue;
+    }
+    const program = espree.parse(data.value, {attachComment: true});
+    estree_walker.walk(program, {enter: (n) => {
+      if (!(n.type === 'CallExpression' && n.callee.type === 'MemberExpression')) {
+        return;
+      }
+      if (!(n.callee.object && n.callee.property)) {
+        return;
+      }
+      if (!(n.callee.object.name === 'WCT' && n.callee.property.name === 'loadSuites')) {
+        return;
+      }
+      if (!(n.arguments && n.arguments.length === 1 && n.arguments[0].type === 'ArrayExpression')) {
+        return;
+      }
+      const testFilenameExpressions = n.arguments[0];
+      const shadyFilenames = new Set<string>();
+      const shadowFilenames = new Set<string>();
+      for (const filenameExpression of testFilenameExpressions.elements) {
+        if (/dom=shadow/.test(filenameExpression.value)) {
+          shadowFilenames.add(filenameExpression.value);
+        } else {
+          shadyFilenames.add(filenameExpression.value);
+        }
+      }
+      for (const shadyFilename of shadyFilenames) {
+        if (!shadowFilenames.has(shadyFilename + '?dom=shadow')) {
+          updateNeeded = true;
+        }
+      }
+      testFilenameExpressions.elements = [];
+      for (const shadyFilename of shadyFilenames) {
+        testFilenameExpressions.elements.push({type: 'Literal', value: shadyFilename});
+      }
+      for (const shadyFilename of shadyFilenames) {
+        testFilenameExpressions.elements.push({type: 'Literal', value: shadyFilename + '?dom=shadow'});
+      }
+    }});
+    // Try to infer indentation
+    let indentation = '  ';
+    const parent = script.parentNode;
+    const scriptIndex = parent.childNodes.indexOf(script);
+    if (scriptIndex >= 0 && parent.childNodes[scriptIndex - 1].nodeName === '#text') {
+      const textJustBefore = parent.childNodes[scriptIndex - 1].value;
+      indentation = textJustBefore.match(/( +)$/)[1];
+    }
+    data.value = '\n' + escodegen.generate(program, {
+        comment: true,
+        format: {
+          indent: {
+            style: '  ',
+            base: (indentation.length / 2) + 1,
+            adjustMultilineComment: true
+          }
+        }
+    }) + '\n' + indentation;
+  }
+
+  if (updateNeeded) {
+    fs.writeFileSync(testIndexFile, dom5.serialize(domTree) + '\n', 'utf8');
+    element.needsReview = true;
+    await makeCommit(
+        element, ['test/index.html'], 'Add shadow dom test configurations.');
+  }
 }
+
+/**
+ * Creates a commit for the element and marks it as dirty.
+ */
+async function makeCommit(
+      element: ElementRepo,files:string[],
+      commitMessage: string):Promise<void> {
+
+  const getSignature = () =>
+    nodegit.Signature.now(
+        'Polymer Format Bot', 'format-bot@polymer-project.org');
+
+  element.dirty = true;
+  await element.repo.createCommitOnHead(
+      files, getSignature(), getSignature(), commitMessage);
+}
+
 
 /**
  * Synchronously determines whether the given file exists.

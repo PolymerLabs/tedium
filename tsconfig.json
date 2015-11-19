@@ -17,5 +17,18 @@
         "!node_modules/**",
         "typings/tsd.d.ts",
         "custom_typings/main.d.ts"
-    ]
+    ],
+    "files": [
+        "cleanup-passes.ts",
+        "custom_typings/main.d.ts",
+        "tedium.ts",
+        "typings/js-yaml/js-yaml.d.ts",
+        "typings/node/node.d.ts",
+        "typings/progress/progress.d.ts",
+        "typings/rimraf/rimraf.d.ts",
+        "typings/tsd.d.ts"
+    ],
+    "atom": {
+        "rewriteTsconfig": true
+    }
 }

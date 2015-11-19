@@ -4,7 +4,7 @@ declare module 'pad' {
   }
   function pad(s: string, padding: number, options?: Options) : string;
   module pad {}
-  export = pad; 
+  export = pad;
 }
 
 declare module 'github-cache' {
@@ -141,4 +141,46 @@ declare module 'command-line-args' {
   }
 
   export = commandLineArgs;
+}
+
+declare module 'dom5' {
+  export interface Node {
+    nodeName: string;
+    tagName: string;
+    childNodes: Node[];
+    parentNode: Node;
+    attrs: {name: string; value: string;}[];
+    value?: string;
+  }
+  export function parse(text: string):Node;
+  export function parseFragment(text: string):Node;
+  export function serialize(node: Node): string;
+  export function query(root: Node, predicate: (n:Node) => boolean):Node;
+  export function queryAll(root: Node, predicate: (n:Node) => boolean):Node[];
+}
+
+declare module 'espree' {
+  interface ParseOpts {
+    attachComment: boolean;
+  }
+  export function parse(text: string, opts?: ParseOpts):any;
+}
+
+declare module 'estree-walker' {
+  export function walk(n: any, callbacks:{enter: (node:any)=>any}):void;
+}
+
+declare module 'escodegen' {
+  interface GenerateOpts {
+    comment?: boolean;
+    format?: {
+      indent?: {
+        style?: string;
+        base?: number;
+        adjustMultilineComment: boolean;
+      }
+    }
+  }
+  export function generate(ast:any, opts?: GenerateOpts):string;
+
 }

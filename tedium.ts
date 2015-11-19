@@ -37,6 +37,7 @@ import * as hydrolysis from 'hydrolysis';
 import * as pad from 'pad';
 import * as cliArgs from 'command-line-args';
 
+
 const cli = cliArgs([
   {
     name: "help",
@@ -121,7 +122,7 @@ async function getRepos():Promise<GitHub.Repo[]> {
 
   // github pagination is... not entirely consistent, and
   // sometimes gives us duplicate repos.
-  const repoIds = new Set();
+  const repoIds = new Set<string>();
   const dedupedRepos: GitHub.Repo[] = [];
   for (const repo of repos) {
     if (repoIds.has(repo.name)) {
@@ -408,6 +409,9 @@ async function _main(elements: ElementRepo[]) {
   for (const element of elements) {
     element.analyzer = analyzer;
   }
+  elements.sort((l, r) => {
+    return l.dir.localeCompare(r.dir);
+  });
 
   // Transform code on disk and push it up to github
   // (if that's what the user wants)
@@ -423,22 +427,23 @@ async function _main(elements: ElementRepo[]) {
   ]);
 
   const branchName = 'auto-cleanup';
+  const cleanupProgress = standardProgressBar(
+      'Applying transforms...', elements.length);
   for (const element of elements) {
     if (excludes.has(element.dir)) {
+      cleanupProgress.tick();
       continue;
     }
-    cleanupPromises.push(
-      Promise.resolve()
+    await Promise.resolve()
         .then(checkoutNewBranch.bind(null, element.repo, branchName))
         .then(rateLimit.bind(null, 0))
         .then(cleanup.bind(null, element))
         .then(pushChanges.bind(null, element, branchName, user.login))
         .catch((err) => {
           throw new Error(`Error updating ${element.dir}:\n${err.stack || err}`);
-        })
-    );
+        });
+    cleanupProgress.tick();
   }
-  await promiseAllWithProgress(cleanupPromises, 'Applying transforms...');
 
   reportOnChangesMade(elements);
   if (elementsPushed === 0 && pushesDenied === 0) {
