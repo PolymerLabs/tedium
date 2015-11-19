@@ -6,7 +6,7 @@
         "isolatedModules": true,
         "declaration": false,
         "noImplicitAny": true,
-        "removeComments": true,
+        "removeComments": false,
         "noLib": false,
         "preserveConstEnums": true,
         "suppressImplicitAnyIndexErrors": true
