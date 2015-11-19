@@ -19,8 +19,15 @@
         "custom_typings/main.d.ts"
     ],
     "files": [
-        "cleanup-passes.ts",
+        "cleanup-passes/bower.ts",
+        "cleanup-passes/contribution-guide.ts",
+        "cleanup-passes/readme.ts",
+        "cleanup-passes/tests.ts",
+        "cleanup-passes/travis.ts",
+        "cleanup-passes/util.ts",
+        "cleanup.ts",
         "custom_typings/main.d.ts",
+        "element-repo.ts",
         "tedium.ts",
         "typings/js-yaml/js-yaml.d.ts",
         "typings/node/node.d.ts",
