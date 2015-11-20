@@ -298,15 +298,21 @@ function cleanupTravisConfig(element) {
 
   let travis = yaml.safeLoad(travisConfigBlob);
 
-  const installStep = 'npm install polylint';
-  const runStep = 'polylint';
+  let needsReview = false;
 
   // update travis config
   // Add polylint to all elements
   if (Array.isArray(travis.before_script)) {
+    const installStep = 'npm install polylint';
+    const runStep = 'polylint';
+
+    // assume we need a review
+    needsReview = true;
+
     const bs = travis.before_script;
     const installIndex = bs.indexOf(installStep);
     const runIndex = bs.indexOf(runStep);
+
     if (installIndex < 0 && runIndex < 0) {
       // add both steps
       bs.push(installStep);
@@ -321,6 +327,9 @@ function cleanupTravisConfig(element) {
       // reorder install step to be before run step
       bs.splice(installIndex, 1);
       bs.splice(runIndex, 0, installStep);
+    } else {
+      // all is well
+      needsReview = false;
     }
   }
 
@@ -329,7 +338,10 @@ function cleanupTravisConfig(element) {
   if (travisConfigBlob !== updatedTravisConfigBlob) {
     fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, 'utf-8');
     element.dirty = true;
-    const commitMessage = '[skip ci] Update travis config';
+    element.needsReview = needsReview;
+    // if this commit needs review, run the tests
+    // otherwise this is probably an innocuous run
+    const commitMessage = `${!needsReview ? '[ci skip] ' : ''}Update travis config`;
     return element.repo.createCommitOnHead(
       ['.travis.yml'], getSignature(), getSignature(),
       commitMessage
