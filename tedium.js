@@ -318,8 +318,14 @@ function analyzeRepos() {
 
   for (const dir of dirs) {
     for (const fn of fs.readdirSync(path.join('repos', dir))) {
-      if (/demo|index\.html|dependencies\.html/.test(fn) ||
+      if (/index\.html|dependencies\.html/.test(fn) ||
           !fn.endsWith('.html')) {
+        continue;
+      }
+      // We want to ignore files with 'demo' in them, unless the element's
+      // directory has the word 'demo' in it, in which case that's
+      // the whole point of the element.
+      if (!/\bdemo\b/.test(dir) && /demo/.test(fn)) {
         continue;
       }
       htmlFiles.push(path.join('repos', dir, fn));
