@@ -61,6 +61,25 @@ const cli = cliArgs([
     description: "The maximum number of repos to push. Default: 0",
     defaultValue: 0
   },
+  {
+    name: 'repo',
+    type: (s) => {
+      if (!s) {
+        throw new Error('Value expected for --repo|-r flag');
+      }
+      let parts = s.split('/');
+      if (parts.length !== 2) {
+        throw new Error(`Given repo ${s} is not in form user/repo`);
+      }
+      return {
+        user: parts[0],
+        repo: parts[1]
+      };
+    },
+    multiple: true,
+    alias: 'r',
+    description: 'Explicit repos to process. Specifying explicit repos will disable running on the implicit set of repos for the user.'
+  },
 ]);
 const opts = cli.parse();
 
@@ -118,7 +137,21 @@ function getRepos() {
     .then((repo) => {
       repos.push(repo);
     }));
-  promises.push(getReposFromPageOnward(0));
+  if (opts.repo.length) {
+    // cleanup passes wants ContributionGuide around
+    promises.push(promisify(github.repos.get)({user: 'PolymerElements', repo: 'ContributionGuide'})
+      .then((repo) => {
+        repos.push(repo);
+    }));
+    for (let repo of opts.repo) {
+      promises.push(promisify(github.repos.get)(repo)
+        .then((repo) => {
+          repos.push(repo);
+      }));
+    }
+  } else {
+    promises.push(getReposFromPageOnward(0));
+  }
 
   function deduplicateRepos() {
     // github pagination is... not entirely consistent, and
