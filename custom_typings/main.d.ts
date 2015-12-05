@@ -38,21 +38,26 @@ declare module 'github-cache' {
     labels?: string[];
     state?: string;
   }
+  interface GetFromOrgOpts {
+    org: string;
+    per_page?: number;
+    page?: number;
+  }
   class GitHubApi {
     constructor(options:Options);
     repos: {
-      getFromOrg(msg:any, cb:(e:any, repos: GitHubApi.Repo[])=>any):any;
-      get(msg:any, cb:(e:any, repo:GitHubApi.Repo)=>any):void;
+      getFromOrg(msg:GetFromOrgOpts, cb:NodeCallback<GitHubApi.Repo[]>):void;
+      get(msg:{user: string, repo: string}, cb:NodeCallback<GitHubApi.Repo>):void;
     }
     pullRequests: {
-      create(msg:CreatePullRequestOpts, cb:NodeCallback<GitHubApi.Issue>):any;
+      create(msg:CreatePullRequestOpts, cb:NodeCallback<GitHubApi.Issue>):void;
     }
     issues: {
-      edit(msg:IssuesEditOpts, cb:NodeCallback<GitHubApi.Issue>):any;
+      edit(msg:IssuesEditOpts, cb:NodeCallback<GitHubApi.Issue>):void;
     }
     authenticate(credentials: {type: string, token: string}):void;
     user: {
-      get(msg: {}, cb:(e:any, user:GitHubApi.User)=>any):void;
+      get(msg: {}, cb:NodeCallback<GitHubApi.User>):void;
     }
   }
   module GitHubApi {
@@ -169,6 +174,7 @@ declare module 'command-line-args' {
     description: string;
     defaultValue?: any;
     type: (val:string) => any;
+    multiple?: boolean;
   }
   interface UsageOpts {
     title: string;

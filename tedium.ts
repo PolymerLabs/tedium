@@ -62,8 +62,32 @@ const cli = cliArgs([
     description: "The maximum number of repos to push. Default: 0",
     defaultValue: 0
   },
+  {
+    name: 'repo',
+    type: (s) => {
+      if (!s) {
+        throw new Error('Value expected for --repo|-r flag');
+      }
+      let parts = s.split('/');
+      if (parts.length !== 2) {
+        throw new Error(`Given repo ${s} is not in form user/repo`);
+      }
+      return {
+        user: parts[0],
+        repo: parts[1]
+      };
+    },
+    multiple: true,
+    alias: 'r',
+    description: 'Explicit repos to process. Specifying explicit repos will disable running on the implicit set of repos for the user.'
+  },
 ]);
-const opts = cli.parse();
+interface Options {
+  help: boolean
+  max_changes: number;
+  repo: {user: string, repo: string}[];
+}
+const opts: Options = cli.parse();
 
 if (opts.help) {
   console.log(cli.getUsage({
@@ -102,25 +126,39 @@ async function getRepos():Promise<GitHub.Repo[]> {
   const per_page = 100;
   const getFromOrg : (o:Object)=>Promise<GitHub.Repo[]> =
       promisify(github.repos.getFromOrg);
+  let progressLength = 2;
+  if (opts.repo.length) {
+    progressLength += opts.repo.length
+  }
   const progressBar = standardProgressBar(
-      'Discovering repos in PolymerElements...', 2);
+      'Discovering repos in PolymerElements...', progressLength);
 
   // First get the Polymer repo, then get all of the PolymerElements repos.
   const repo : GitHub.Repo = await promisify(github.repos.get)({
       user: 'Polymer', repo: 'polymer'});
   progressBar.tick();
   const repos = [repo];
-  let page = 0;
-  while (true) {
-    const resultsPage = await getFromOrg(
-        {org: 'PolymerElements', per_page, page});
-    repos.push.apply(repos, resultsPage);
-    page++;
-    if (resultsPage.length < per_page) {
-      break;
+  if (opts.repo.length) {
+    // cleanup passes wants ContributionGuide around
+    repos.push(await promisify(github.repos.get)({user: 'PolymerElements', repo: 'ContributionGuide'}));
+    progressBar.tick();
+    for (let repo of opts.repo) {
+      repos.push(await promisify(github.repos.get)(repo));
+      progressBar.tick();
     }
+  } else {
+    let page = 0;
+    while (true) {
+      const resultsPage = await getFromOrg(
+          {org: 'PolymerElements', per_page, page});
+      repos.push.apply(repos, resultsPage);
+      page++;
+      if (resultsPage.length < per_page) {
+        break;
+      }
+    }
+    progressBar.tick();
   }
-  progressBar.tick();
 
   // github pagination is... not entirely consistent, and
   // sometimes gives us duplicate repos.
@@ -320,7 +358,7 @@ async function analyzeRepos() {
         continue;
       }
       // We want to ignore files with 'demo' in them, unless the element's
-      // directory directory has the word 'demo' in it, in which case that's
+      // directory has the word 'demo' in it, in which case that's
       // the whole point of the element.
       if (!/\bdemo\b/.test(dir) && /demo/.test(fn)) {
         continue;
