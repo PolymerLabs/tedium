@@ -5,6 +5,7 @@
   "main": "tedium.js",
   "bin": "tedium.js",
   "scripts": {
+    "init": "tsd install && npm run build",
     "test": "tslint *.ts cleanup-passes/*.ts custom_typings/*.ts",
     "build": "tsc",
     "build:watch": "tsc -w",
@@ -40,6 +41,7 @@
     "rimraf": "^2.4.3"
   },
   "devDependencies": {
+    "tsd": "^0.6.5",
     "tslint": "^3.1.1",
     "typescript": "^1.7.3",
     "watch": "^0.16.0"
