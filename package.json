@@ -5,7 +5,9 @@
   "main": "tedium.js",
   "bin": "tedium.js",
   "scripts": {
-    "test": "jshint *.js",
+    "test": "tslint *.ts cleanup-passes/*.ts custom_typings/*.ts",
+    "build": "tsc",
+    "build:watch": "tsc -w",
     "test:watch": "watch 'npm test' ./"
   },
   "repository": {
@@ -38,7 +40,8 @@
     "rimraf": "^2.4.3"
   },
   "devDependencies": {
-    "jshint": "^2.8.0",
+    "tslint": "^3.1.1",
+    "typescript": "^1.7.3",
     "watch": "^0.16.0"
   }
 }
