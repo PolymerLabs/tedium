@@ -11,12 +11,14 @@
 'use strict';
 
 import {ElementRepo} from './element-repo';
+import {CleanupPass} from './cleanup-passes/util';
 import {cleanupPasses as bowerPasses} from './cleanup-passes/bower';
 import {cleanupPasses as readmePasses} from './cleanup-passes/readme';
 import {cleanupPasses as testPasses} from './cleanup-passes/tests';
 import {cleanupPasses as travisPasses} from './cleanup-passes/travis';
 
-const cleanupPasses : Array<(element:ElementRepo)=>Promise<void>> = [].concat(
+
+const cleanupPasses: CleanupPass[] = [].concat(
   bowerPasses,
   readmePasses,
   testPasses,

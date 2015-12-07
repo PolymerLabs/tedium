@@ -42,3 +42,7 @@ export async function makeCommit(
   await element.repo.createCommitOnHead(
       files, getSignature(), getSignature(), commitMessage);
 }
+
+export interface CleanupPass {
+  (element:ElementRepo): Promise<void>;
+}
