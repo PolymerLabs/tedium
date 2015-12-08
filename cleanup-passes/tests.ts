@@ -1,11 +1,15 @@
 /**
  * @license
  * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * This code may only be used under the BSD style license found at
+ * http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at
+ * http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at
+ * http://polymer.github.io/CONTRIBUTORS.txt
  * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ * subject to an additional IP rights grant found at
+ * http://polymer.github.io/PATENTS.txt
  */
 
 'use strict';
@@ -17,17 +21,17 @@ import * as espree from 'espree';
 import * as estree_walker from 'estree-walker';
 import * as escodegen from 'escodegen';
 import {ElementRepo} from '../element-repo.ts';
-import {existsSync,makeCommit} from './util';
+import {existsSync, makeCommit} from './util';
 
 
-async function addShadowDomTests(element:ElementRepo):Promise<void> {
+async function addShadowDomTests(element: ElementRepo): Promise<void> {
   const testDir = path.join(element.dir, 'test');
   if (!existsSync(testDir) || !fs.statSync(testDir).isDirectory()) {
-    return; // nothing to do
+    return;  // nothing to do
   }
   const testIndexFile = path.join(testDir, 'index.html');
   if (!existsSync(testIndexFile)) {
-    return; // nothing to do
+    return;  // nothing to do
   }
 
   const contents = fs.readFileSync(testIndexFile, 'utf8');
@@ -40,59 +44,67 @@ async function addShadowDomTests(element:ElementRepo):Promise<void> {
       continue;
     }
     const program = espree.parse(data.value, {attachComment: true});
-    estree_walker.walk(program, {enter: (n) => {
-      if (!(n.type === 'CallExpression' && n.callee.type === 'MemberExpression')) {
-        return;
-      }
-      if (!(n.callee.object && n.callee.property)) {
-        return;
-      }
-      if (!(n.callee.object.name === 'WCT' && n.callee.property.name === 'loadSuites')) {
-        return;
-      }
-      if (!(n.arguments && n.arguments.length === 1 && n.arguments[0].type === 'ArrayExpression')) {
-        return;
-      }
-      const testFilenameExpressions = n.arguments[0];
-      const shadyFilenames = new Set<string>();
-      const shadowFilenames = new Set<string>();
-      for (const filenameExpression of testFilenameExpressions.elements) {
-        if (/dom=shadow/.test(filenameExpression.value)) {
-          shadowFilenames.add(filenameExpression.value);
-        } else {
-          shadyFilenames.add(filenameExpression.value);
+    estree_walker.walk(program, {
+      enter(n) {
+        if (!(n.type === 'CallExpression' &&
+              n.callee.type === 'MemberExpression')) {
+          return;
+        }
+        if (!(n.callee.object && n.callee.property)) {
+          return;
+        }
+        if (!(n.callee.object.name === 'WCT' &&
+              n.callee.property.name === 'loadSuites')) {
+          return;
+        }
+        if (!(n.arguments && n.arguments.length === 1 &&
+              n.arguments[0].type === 'ArrayExpression')) {
+          return;
+        }
+        const testFilenameExpressions = n.arguments[0];
+        const shadyFilenames = new Set<string>();
+        const shadowFilenames = new Set<string>();
+        for (const filenameExpression of testFilenameExpressions.elements) {
+          if (/dom=shadow/.test(filenameExpression.value)) {
+            shadowFilenames.add(filenameExpression.value);
+          } else {
+            shadyFilenames.add(filenameExpression.value);
+          }
+        }
+        for (const shadyFilename of shadyFilenames) {
+          if (!shadowFilenames.has(shadyFilename + '?dom=shadow')) {
+            updateNeeded = true;
+          }
+        }
+        testFilenameExpressions.elements = [];
+        for (const shadyFilename of shadyFilenames) {
+          testFilenameExpressions.elements.push(
+              {type: 'Literal', value: shadyFilename});
+        }
+        for (const shadyFilename of shadyFilenames) {
+          testFilenameExpressions.elements.push(
+              {type: 'Literal', value: shadyFilename + '?dom=shadow'});
         }
       }
-      for (const shadyFilename of shadyFilenames) {
-        if (!shadowFilenames.has(shadyFilename + '?dom=shadow')) {
-          updateNeeded = true;
-        }
-      }
-      testFilenameExpressions.elements = [];
-      for (const shadyFilename of shadyFilenames) {
-        testFilenameExpressions.elements.push({type: 'Literal', value: shadyFilename});
-      }
-      for (const shadyFilename of shadyFilenames) {
-        testFilenameExpressions.elements.push({type: 'Literal', value: shadyFilename + '?dom=shadow'});
-      }
-    }});
+    });
     // Try to infer indentation
     let indentation = '  ';
     const parent = script.parentNode;
     const scriptIndex = parent.childNodes.indexOf(script);
-    if (scriptIndex >= 0 && parent.childNodes[scriptIndex - 1].nodeName === '#text') {
+    if (scriptIndex >= 0 &&
+        parent.childNodes[scriptIndex - 1].nodeName === '#text') {
       const textJustBefore = parent.childNodes[scriptIndex - 1].value;
       indentation = textJustBefore.match(/( +)$/)[1];
     }
     data.value = '\n' + escodegen.generate(program, {
-        comment: true,
-        format: {
-          indent: {
-            style: '  ',
-            base: (indentation.length / 2) + 1,
-            adjustMultilineComment: true
-          }
+      comment: true,
+      format: {
+        indent: {
+          style: '  ',
+          base: (indentation.length / 2) + 1,
+          adjustMultilineComment: true
         }
+      }
     }) + '\n' + indentation;
   }
 
@@ -100,7 +112,8 @@ async function addShadowDomTests(element:ElementRepo):Promise<void> {
     fs.writeFileSync(testIndexFile, dom5.serialize(domTree) + '\n', 'utf8');
     element.needsReview = true;
     await makeCommit(
-        element, ['test/index.html'], 'Add shadow dom test configurations.');
+        element, ['test/index.html'],
+        'Add shadow dom test configurations.');
   }
 }
 

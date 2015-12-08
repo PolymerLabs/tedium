@@ -1,11 +1,15 @@
 /**
  * @license
  * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * This code may only be used under the BSD style license found at
+ * http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at
+ * http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at
+ * http://polymer.github.io/CONTRIBUTORS.txt
  * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ * subject to an additional IP rights grant found at
+ * http://polymer.github.io/PATENTS.txt
  */
 
 'use strict';
@@ -18,12 +22,8 @@ import {cleanupPasses as testPasses} from './cleanup-passes/tests';
 import {cleanupPasses as travisPasses} from './cleanup-passes/travis';
 
 
-const cleanupPasses: CleanupPass[] = [].concat(
-  bowerPasses,
-  readmePasses,
-  testPasses,
-  travisPasses
-);
+const cleanupPasses: CleanupPass[] =
+    [].concat(bowerPasses, readmePasses, testPasses, travisPasses);
 
 /**
  * The meat of the implementation. If any cleanup step makes any changes it
@@ -35,7 +35,7 @@ const cleanupPasses: CleanupPass[] = [].concat(
  *
  * To add a cleanup step, just add it to the array of passes above.
  */
-export async function cleanup(element : ElementRepo):Promise<void> {
+export async function cleanup(element: ElementRepo): Promise<void> {
   for (const step of cleanupPasses) {
     await step(element);
   }

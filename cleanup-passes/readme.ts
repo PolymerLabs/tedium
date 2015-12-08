@@ -1,11 +1,15 @@
 /**
  * @license
  * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * This code may only be used under the BSD style license found at
+ * http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at
+ * http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at
+ * http://polymer.github.io/CONTRIBUTORS.txt
  * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ * subject to an additional IP rights grant found at
+ * http://polymer.github.io/PATENTS.txt
  */
 
 'use strict';
@@ -19,7 +23,7 @@ import {existsSync, makeCommit} from './util';
 /**
  * Generates README.md for the element, unless it's in the blacklist.
  */
-async function generateReadme(element: ElementRepo):Promise<void> {
+async function generateReadme(element: ElementRepo): Promise<void> {
   const manualReadmeRepos = new Set([
     'repos/molecules',
     'repos/iron-elements',
@@ -39,8 +43,8 @@ async function generateReadme(element: ElementRepo):Promise<void> {
     // Blocked on https://github.com/Polymer/hydrolysis/issues/188
     'repos/iron-iconset',
     // Blocked on getting the order of elements more correct, and moving the
-    // extra documentation that's currently only in the README somewhere that
-    // tedium can access.
+    // extra documentation that's currently only in the README somewhere
+    // that tedium can access.
     'repos/platinum-sw',
     'repos/neon-animation',
   ]);
@@ -78,17 +82,20 @@ Edit this file, and the bot will squash your changes :)
 
   if (existsSync(path.join(element.dir, '.travis.yml'))) {
     readmeContents +=
-      `[![Build Status](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name}.svg?branch=master)](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name})\n\n`;
+        `[![Build Status](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name}.svg?branch=master)](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name})\n\n`;
   }
 
   // These elements are going to have a page in the element catalog.
-  if (/^(gold|platinum|paper|neon|iron|carbon)-/.test(element.ghRepo.name)) {
-    readmeContents += `_[Demo and API Docs](https://elements.polymer-project.org/elements/${element.ghRepo.name})_` + '\n\n';
+  if (/^(gold|platinum|paper|neon|iron|carbon)-/.test(
+          element.ghRepo.name)) {
+    readmeContents +=
+        `_[Demo and API Docs](https://elements.polymer-project.org/elements/${element.ghRepo.name})_` +
+        '\n\n';
   }
 
   const tagNames = Object.keys(elementsByTagName);
-  // Sort elements alphabetically, except that the element that the repository
-  // is named after should come first.
+  // Sort elements alphabetically, except that the element that the
+  // repository is named after should come first.
   tagNames.sort((l, r) => {
     if (l === element.ghRepo.name) {
       return -1;

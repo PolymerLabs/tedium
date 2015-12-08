@@ -1,11 +1,15 @@
 /**
  * @license
  * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * This code may only be used under the BSD style license found at
+ * http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at
+ * http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at
+ * http://polymer.github.io/CONTRIBUTORS.txt
  * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ * subject to an additional IP rights grant found at
+ * http://polymer.github.io/PATENTS.txt
  */
 
 /**
@@ -41,15 +45,10 @@ import * as cliArgs from 'command-line-args';
 
 
 const cli = cliArgs([
-  {
-    name: "help",
-    type: Boolean,
-    alias: "h",
-    description: "Print usage."
-  },
+  {name: "help", type: Boolean, alias: "h", description: "Print usage."},
   {
     name: "max_changes",
-    type: (x:string) => {
+    type: (x: string) => {
       if (!x) {
         return 0;
       }
@@ -72,20 +71,22 @@ const cli = cliArgs([
       if (parts.length !== 2) {
         throw new Error(`Given repo ${s} is not in form user/repo`);
       }
-      return {
-        user: parts[0],
-        repo: parts[1]
-      };
+      return {user: parts[0], repo: parts[1]};
     },
     multiple: true,
     alias: 'r',
-    description: 'Explicit repos to process. Specifying explicit repos will disable running on the implicit set of repos for the user.'
+    description:
+        'Explicit repos to process. Specifying explicit repos will disable running on the implicit set of repos for the user.'
   },
 ]);
+interface UserRepo {
+  user: string;
+  repo: string;
+}
 interface Options {
-  help: boolean
+  help: boolean;
   max_changes: number;
-  repo: {user: string, repo: string}[];
+  repo: UserRepo[];
 }
 const opts: Options = cli.parse();
 
@@ -97,19 +98,17 @@ if (opts.help) {
   process.exit(0);
 }
 
-let GITHUB_TOKEN : string;
+let GITHUB_TOKEN: string;
 
 try {
   GITHUB_TOKEN = fs.readFileSync('token', 'utf8').trim();
-} catch(e) {
-  console.error(
-`
+} catch (e) {
+  console.error(`
 You need to create a github token and place it in a file named 'token'.
 The token only needs the 'public repos' permission.
 
 Generate a token here:   https://github.com/settings/tokens
-`
-  );
+`);
   process.exit(1);
 }
 
@@ -122,9 +121,9 @@ const progressBarWidth = 45;
  * Returns a Promise of a list of Polymer github repos to automatically
  * cleanup / transform.
  */
-async function getRepos():Promise<GitHub.Repo[]> {
+async function getRepos(): Promise<GitHub.Repo[]> {
   const per_page = 100;
-  const getFromOrg : (o:Object)=>Promise<GitHub.Repo[]> =
+  const getFromOrg: (o: Object) => Promise<GitHub.Repo[]> =
       promisify(github.repos.getFromOrg);
   let progressLength = 2;
   if (opts.repo.length) {
@@ -134,13 +133,15 @@ async function getRepos():Promise<GitHub.Repo[]> {
       'Discovering repos in PolymerElements...', progressLength);
 
   // First get the Polymer repo, then get all of the PolymerElements repos.
-  const repo : GitHub.Repo = await promisify(github.repos.get)({
-      user: 'Polymer', repo: 'polymer'});
+  const repo: GitHub.Repo =
+      await promisify(github.repos.get)({user: 'Polymer', repo: 'polymer'});
   progressBar.tick();
   const repos = [repo];
   if (opts.repo.length) {
     // cleanup passes wants ContributionGuide around
-    repos.push(await promisify(github.repos.get)({user: 'PolymerElements', repo: 'ContributionGuide'}));
+    repos.push(
+        await promisify(github.repos.get)(
+            {user: 'PolymerElements', repo: 'ContributionGuide'}));
     progressBar.tick();
     for (let repo of opts.repo) {
       repos.push(await promisify(github.repos.get)(repo));
@@ -149,8 +150,8 @@ async function getRepos():Promise<GitHub.Repo[]> {
   } else {
     let page = 0;
     while (true) {
-      const resultsPage = await getFromOrg(
-          {org: 'PolymerElements', per_page, page});
+      const resultsPage =
+          await getFromOrg({org: 'PolymerElements', per_page, page});
       repos.push.apply(repos, resultsPage);
       page++;
       if (resultsPage.length < per_page) {
@@ -180,19 +181,19 @@ async function getRepos():Promise<GitHub.Repo[]> {
  * that the user is waiting on.
  */
 function promiseAllWithProgress<T>(
-      promises:Promise<T>[], label:string):Promise<T[]> {
+    promises: Promise<T>[], label: string): Promise<T[]> {
   const progressBar = standardProgressBar(label, promises.length);
   for (const promise of promises) {
-    Promise.resolve(promise).then(
-        () => progressBar.tick(), () => progressBar.tick());
+    Promise.resolve(promise)
+        .then(() => progressBar.tick(), () => progressBar.tick());
   }
   return Promise.all(promises);
 }
 
-function standardProgressBar(label:string, total:number) {
+function standardProgressBar(label: string, total: number) {
   return new ProgressBar(
-    `${pad(label, progressMessageWidth)} [:bar] :percent`,
-    {total, width: progressBarWidth})
+      `${pad(label, progressMessageWidth)} [:bar] :percent`,
+      {total, width: progressBarWidth})
 }
 
 /**
@@ -207,11 +208,9 @@ function standardProgressBar(label:string, total:number) {
  */
 let rateLimit = (function() {
   let previousPromise = Promise.resolve(null);
-  return function rateLimit(delay:number) {
+  return function rateLimit(delay: number) {
     let curr = previousPromise.then(function() {
-      return new Promise((resolve) => {
-        setTimeout(resolve, delay);
-      });
+      return new Promise((resolve) => { setTimeout(resolve, delay); });
     });
     previousPromise = curr;
     return curr;
@@ -223,9 +222,11 @@ let rateLimit = (function() {
  *
  * returns a promise of the nodegit Branch object for the new branch.
  */
-async function checkoutNewBranch(repo:nodegit.Repository, branchName:string):Promise<void> {
+async function checkoutNewBranch(
+    repo: nodegit.Repository, branchName: string): Promise<void> {
   const commit = await repo.getHeadCommit();
-  const branch = await nodegit.Branch.create(repo, branchName, commit, false);
+  const branch =
+      await nodegit.Branch.create(repo, branchName, commit, false);
   return repo.checkoutBranch(branch);
 }
 
@@ -256,7 +257,8 @@ function pushIsAllowed() {
  *
  * Returns a promise.
  */
-async function pushChanges(element:ElementRepo, localBranchName:string, assignee:string) {
+async function pushChanges(
+    element: ElementRepo, localBranchName: string, assignee: string) {
   if (!element.dirty) {
     return;
   }
@@ -274,7 +276,7 @@ async function pushChanges(element:ElementRepo, localBranchName:string, assignee
     if (element.needsReview) {
       await createPullRequest(element, localBranchName, 'master', assignee);
     }
-  } catch(e) {
+  } catch (e) {
     element.pushFailed = true;
     throw e;
   }
@@ -287,19 +289,23 @@ async function pushChanges(element:ElementRepo, localBranchName:string, assignee
  *
  * returns a promise
  */
-async function pushBranch(element:ElementRepo, localBranchName:string, remoteBranchName:string) {
+async function pushBranch(
+    element: ElementRepo, localBranchName: string, remoteBranchName: string) {
   const remote = await element.repo.getRemote("origin")
 
   return remote.push(
-    ["refs/heads/" + localBranchName + ":refs/heads/" + remoteBranchName],
-    {
-      callbacks: {
-        credentials() {
-          return nodegit.Cred.userpassPlaintextNew(
-              GITHUB_TOKEN, "x-oauth-basic");
-        }
-      }
-    }
+     [
+       "refs/heads/" + localBranchName + ":refs/heads/" +
+       remoteBranchName
+     ],
+     {
+       callbacks: {
+         credentials() {
+           return nodegit.Cred.userpassPlaintextNew(
+               GITHUB_TOKEN, "x-oauth-basic");
+         }
+       }
+     }
   );
 }
 
@@ -307,17 +313,22 @@ async function pushBranch(element:ElementRepo, localBranchName:string, remoteBra
  * Creates a pull request to merge the branch identified by `head` into the
  * branch identified by `base`, then assign the new pull request to `asignee`.
  */
-async function createPullRequest(element:ElementRepo, head:string, base:string, assignee:string) {
+async function createPullRequest(
+    element: ElementRepo, head: string, base: string, assignee: string) {
   const user = element.ghRepo.owner.login;
   const repo = element.ghRepo.name;
   await rateLimit(5000);
   const pr = await promisify(github.pullRequests.create)({
     title: 'Automatic cleanup!',
-    user, repo, head, base,
+    user,
+    repo,
+    head,
+    base,
   });
   await promisify(github.issues.edit)({
     number: pr.number,
-    user, repo,
+    user,
+    repo,
     assignee,
     labels: ['autogenerated'],
   });
@@ -328,16 +339,13 @@ async function createPullRequest(element:ElementRepo, head:string, base:string, 
  */
 function connectToGithub() {
   const github = new GitHub({
-      version: "3.0.0",
-      protocol: "https",
-      cachedb: './.github-cachedb',
-      validateCache: true
+    version: "3.0.0",
+    protocol: "https",
+    cachedb: './.github-cachedb',
+    validateCache: true
   });
 
-  github.authenticate({
-    type: 'oauth',
-    token: GITHUB_TOKEN
-  });
+  github.authenticate({type: 'oauth', token: GITHUB_TOKEN});
   return github;
 }
 
@@ -353,8 +361,7 @@ async function analyzeRepos() {
 
   for (const dir of dirs) {
     for (const fn of fs.readdirSync(path.join('repos', dir))) {
-      if (/index\.html|dependencies\.html/.test(fn) ||
-          !fn.endsWith('.html')) {
+      if (/index\.html|dependencies\.html/.test(fn) || !fn.endsWith('.html')) {
         continue;
       }
       // We want to ignore files with 'demo' in them, unless the element's
@@ -367,28 +374,28 @@ async function analyzeRepos() {
     }
   }
 
-  function filter(repo: string) {
-    return !existsSync(repo);
-  }
+  function filter(repo: string) { return !existsSync(repo); }
 
   // This code is conceptually simple, it's only complex due to ordering
   // and the progress bar. Basically we call analyzer.metadataTree on each
   // html file in sequence, then finally call analyzer.annotate() and return.
-  const analyzer = await hydrolysis.Analyzer.analyze('repos/polymer/polymer.html', {filter});
+  const analyzer =
+      await hydrolysis.Analyzer.analyze('repos/polymer/polymer.html', {filter});
 
-  const progressBar = new ProgressBar(`:msg [:bar] :percent`, {
-    total: htmlFiles.length + 1, width: progressBarWidth});
+  const progressBar = new ProgressBar(
+      `:msg [:bar] :percent`,
+      {total: htmlFiles.length + 1, width: progressBarWidth});
 
   for (const htmlFile of htmlFiles) {
     await analyzer.metadataTree(htmlFile);
-    const msg = pad(`Analyzing ${htmlFile.slice(6)}`,
-                    progressMessageWidth, {strip: true});
+    const msg = pad(
+        `Analyzing ${htmlFile.slice(6)}`, progressMessageWidth, {strip: true});
     progressBar.tick({msg});
   }
 
 
-  progressBar.tick({
-      msg: pad('Analyzing with hydrolysis...', progressMessageWidth)});
+  progressBar.tick(
+      {msg: pad('Analyzing with hydrolysis...', progressMessageWidth)});
   analyzer.annotate();
   return analyzer;
 }
@@ -397,12 +404,12 @@ async function analyzeRepos() {
  * Should be called after everything is done. Looks through the elements and
  * reports which ones would be pushed,
  */
-function reportOnChangesMade(elements:ElementRepo[]) {
+function reportOnChangesMade(elements: ElementRepo[]) {
   const pushedElements = elements.filter((e) => e.pushSucceeded);
   const failedElements = elements.filter((e) => e.pushFailed);
   const deniedElements = elements.filter((e) => e.pushDenied);
 
-  const messageAndElements : [{0: string, 1: ElementRepo[]}] = [
+  const messageAndElements:[{0: string, 1: ElementRepo[]}] = [
     ['Elements that would have been pushed:', deniedElements],
     ['Elements pushed successfully:', pushedElements],
     ['Elements that I tried to push that FAILED:', failedElements],
@@ -434,34 +441,33 @@ async function _main(elements: ElementRepo[]) {
   for (const ghRepo of ghRepos) {
     promises.push(Promise.resolve().then(() => {
       const targetDir = path.join('repos', ghRepo.name);
-      let repoPromise : Promise<nodegit.Repository>;
+      let repoPromise: Promise<nodegit.Repository>;
       if (existsSync(targetDir)) {
         repoPromise = nodegit.Repository.open(targetDir);
       } else {
-        repoPromise = rateLimit(100).then(() =>
-            nodegit.Clone.clone(ghRepo.clone_url, targetDir, null));
+        repoPromise = rateLimit(100).then(
+            () => nodegit.Clone.clone(ghRepo.clone_url, targetDir, null));
       }
       let result = repoPromise.then((repo) => {
-          const elem : ElementRepo = {repo: repo, dir: targetDir, ghRepo: ghRepo, analyzer: null};
-          return elem;
+        const elem: ElementRepo =
+            {repo: repo, dir: targetDir, ghRepo: ghRepo, analyzer: null};
+        return elem;
       });
       return result;
     }));
   }
-  elements.push(... await promiseAllWithProgress(promises, 'Cloning repos...'));
+  elements.push(...await promiseAllWithProgress(promises, 'Cloning repos...'));
 
   // Analyze with hydrolysis
   const analyzer = await analyzeRepos();
   for (const element of elements) {
     element.analyzer = analyzer;
   }
-  elements.sort((l, r) => {
-    return l.dir.localeCompare(r.dir);
-  });
+  elements.sort((l, r) => { return l.dir.localeCompare(r.dir); });
 
   // Transform code on disk and push it up to github
   // (if that's what the user wants)
-  const cleanupPromises : Promise<any>[] = [];
+  const cleanupPromises: Promise<any>[] = [];
   const excludes = new Set([
     'repos/style-guide',
     'repos/test-all',
@@ -473,8 +479,8 @@ async function _main(elements: ElementRepo[]) {
   ]);
 
   const branchName = 'auto-cleanup';
-  const cleanupProgress = standardProgressBar(
-      'Applying transforms...', elements.length);
+  const cleanupProgress =
+      standardProgressBar('Applying transforms...', elements.length);
   for (const element of elements) {
     if (excludes.has(element.dir)) {
       cleanupProgress.tick();
@@ -486,7 +492,8 @@ async function _main(elements: ElementRepo[]) {
         .then(cleanup.bind(null, element))
         .then(pushChanges.bind(null, element, branchName, user.login))
         .catch((err) => {
-          throw new Error(`Error updating ${element.dir}:\n${err.stack || err}`);
+          throw new Error(
+              `Error updating ${element.dir}:\n${err.stack || err}`);
         });
     cleanupProgress.tick();
   }
@@ -497,11 +504,13 @@ async function _main(elements: ElementRepo[]) {
   } else if (pushesDenied === 0) {
     console.log(`Successfully pushed to ${elementsPushed} repos.`);
   } else if (opts.max_changes === 0) {
-    console.log(`${pushesDenied} changes ready to push. ` +
-                `Call with --max_changes=N to push them up!`);
+    console.log(
+        `${pushesDenied} changes ready to push. ` +
+        `Call with --max_changes=N to push them up!`);
   } else {
-    console.log(`Successfully pushed to ${elementsPushed} repos. ` +
-                `${pushesDenied} remain.`);
+    console.log(
+        `Successfully pushed to ${elementsPushed} repos. ` +
+        `${pushesDenied} remain.`);
   }
 }
 
@@ -514,11 +523,12 @@ async function main() {
   try {
     await _main(elements);
   } catch (err) {
+    // Try to report on changes made, but we may not have gotten far enough
+    // for that to be possible. If not, don't worry about it.
     try {
-      // Try to report on changes made, but we may not have gotten far enough
-      // for that to be possible. If not, don't worry about it.
       reportOnChangesMade(elements);
-    } catch(_) {}
+    } catch (_) {
+    }
 
     // Report the error and crash.
     console.error('\n\n');

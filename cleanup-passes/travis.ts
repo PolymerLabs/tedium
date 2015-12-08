@@ -1,11 +1,15 @@
 /**
  * @license
  * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * This code may only be used under the BSD style license found at
+ * http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at
+ * http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at
+ * http://polymer.github.io/CONTRIBUTORS.txt
  * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ * subject to an additional IP rights grant found at
+ * http://polymer.github.io/PATENTS.txt
  */
 
 'use strict';
@@ -16,7 +20,7 @@ import {ElementRepo} from '../element-repo';
 import {existsSync, makeCommit} from './util';
 import * as yaml from 'js-yaml';
 
-async function cleanupTravisConfig(element:ElementRepo):Promise<void> {
+async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   const travisConfigPath = path.join(element.dir, '.travis.yml');
 
   if (!existsSync(travisConfigPath)) {
@@ -71,11 +75,11 @@ async function cleanupTravisConfig(element:ElementRepo):Promise<void> {
     element.needsReview = needsReview;
     // if this commit needs review, run the tests
     // otherwise this is probably an innocuous run
-    const commitMessage = `${!needsReview ? '[ci skip] ' : ''}Update travis config`;
+    const commitMessage =
+        `${!needsReview ? '[ci skip] ' : ''}Update travis config`;
     await makeCommit(element, ['.travis.yml'], commitMessage);
   }
 }
-
 
 
 
