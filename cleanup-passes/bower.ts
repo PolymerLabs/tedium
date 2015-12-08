@@ -14,9 +14,9 @@
 
 'use strict';
 
-import {ElementRepo} from '../element-repo.ts';
 import * as fs from 'fs';
 import * as path from 'path';
+import {ElementRepo} from '../element-repo.ts';
 import {existsSync, makeCommit} from './util';
 
 /**

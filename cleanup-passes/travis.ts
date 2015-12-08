@@ -15,10 +15,11 @@
 'use strict';
 
 import * as fs from 'fs';
+import * as yaml from 'js-yaml';
 import * as path from 'path';
 import {ElementRepo} from '../element-repo';
 import {existsSync, makeCommit} from './util';
-import * as yaml from 'js-yaml';
+
 
 async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   const travisConfigPath = path.join(element.dir, '.travis.yml');

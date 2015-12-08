@@ -14,12 +14,12 @@
 
 'use strict';
 
-import * as fs from 'fs';
-import * as path from 'path';
 import * as dom5 from 'dom5';
+import * as escodegen from 'escodegen';
 import * as espree from 'espree';
 import * as estree_walker from 'estree-walker';
-import * as escodegen from 'escodegen';
+import * as fs from 'fs';
+import * as path from 'path';
 import {ElementRepo} from '../element-repo.ts';
 import {existsSync, makeCommit} from './util';
 

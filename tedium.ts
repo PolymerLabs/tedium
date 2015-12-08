@@ -29,19 +29,19 @@
 
 'use strict';
 
+import * as cliArgs from 'command-line-args';
 import * as fs from 'fs';
 import * as GitHub from 'github-cache';
-import * as promisify from 'promisify-node';
+import * as hydrolysis from 'hydrolysis';
 import * as nodegit from 'nodegit';
+import * as pad from 'pad';
 import * as path from 'path';
 import * as ProgressBar from 'progress';
+import * as promisify from 'promisify-node';
 import * as rimraf from 'rimraf';
 import {cleanup} from './cleanup';
 import {existsSync} from './cleanup-passes/util';
 import {ElementRepo, PushStatus} from './element-repo';
-import * as hydrolysis from 'hydrolysis';
-import * as pad from 'pad';
-import * as cliArgs from 'command-line-args';
 
 
 const cli = cliArgs([

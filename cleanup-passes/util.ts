@@ -14,9 +14,9 @@
 
 'use strict';
 
+import * as nodegit from 'nodegit';
 import * as fs from 'fs';
 import {ElementRepo} from '../element-repo';
-import * as nodegit from 'nodegit';
 
 /**
  * Synchronously determines whether the given file exists.
