@@ -38,7 +38,7 @@ import * as ProgressBar from 'progress';
 import * as rimraf from 'rimraf';
 import {cleanup} from './cleanup';
 import {existsSync} from './cleanup-passes/util';
-import {ElementRepo} from './element-repo';
+import {ElementRepo, PushStatus} from './element-repo';
 import * as hydrolysis from 'hydrolysis';
 import * as pad from 'pad';
 import * as cliArgs from 'command-line-args';
@@ -263,7 +263,7 @@ async function pushChanges(
     return;
   }
   if (!pushIsAllowed()) {
-    element.pushDenied = true;
+    element.pushStatus = PushStatus.denied;
     return;
   }
   let remoteBranchName = 'master';
@@ -277,10 +277,10 @@ async function pushChanges(
       await createPullRequest(element, localBranchName, 'master', assignee);
     }
   } catch (e) {
-    element.pushFailed = true;
+    element.pushStatus = PushStatus.failed;
     throw e;
   }
-  element.pushSucceeded = true;
+  element.pushStatus = PushStatus.succeeded;
 }
 
 /**
@@ -405,9 +405,12 @@ async function analyzeRepos() {
  * reports which ones would be pushed,
  */
 function reportOnChangesMade(elements: ElementRepo[]) {
-  const pushedElements = elements.filter((e) => e.pushSucceeded);
-  const failedElements = elements.filter((e) => e.pushFailed);
-  const deniedElements = elements.filter((e) => e.pushDenied);
+  const pushedElements = elements.filter((e) =>
+      e.pushStatus === PushStatus.succeeded);
+  const failedElements = elements.filter((e) =>
+      e.pushStatus === PushStatus.failed);
+  const deniedElements = elements.filter((e) =>
+      e.pushStatus === PushStatus.denied);;
 
   const messageAndElements:[{0: string, 1: ElementRepo[]}] = [
     ['Elements that would have been pushed:', deniedElements],
@@ -450,7 +453,8 @@ async function _main(elements: ElementRepo[]) {
       }
       let result = repoPromise.then((repo) => {
         const elem: ElementRepo =
-            {repo: repo, dir: targetDir, ghRepo: ghRepo, analyzer: null};
+            {repo: repo, dir: targetDir, ghRepo: ghRepo, analyzer: null,
+             pushStatus: PushStatus.unpushed};
         return elem;
       });
       return result;

@@ -30,7 +30,7 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
         bowerPath, JSON.stringify(bowerConfig, null, 2) + '\n', 'utf8');
   }
 
-  let bowerConfig: Object = null;
+  let bowerConfig: any = null;
   const bowerPath = path.join(element.dir, 'bower.json');
   if (!existsSync(bowerPath)) {
     return;  // no bower file to cleanup!
