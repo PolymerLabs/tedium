@@ -5,11 +5,12 @@
   "main": "tedium.js",
   "bin": "tedium.js",
   "scripts": {
-    "init": "tsd install && npm run build",
     "test": "tslint *.ts cleanup-passes/*.ts custom_typings/*.ts",
     "build": "tsc",
     "build:watch": "tsc -w",
-    "test:watch": "watch 'npm test' ./"
+    "test:watch": "watch 'npm test' ./",
+    "prepublish": "npm run build",
+    "postinstall": "tsd install"
   },
   "repository": {
     "type": "git",

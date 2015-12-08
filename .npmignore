@@ -1,0 +1,5 @@
+.github-cachedb
+node_modules
+token
+repos
+typings

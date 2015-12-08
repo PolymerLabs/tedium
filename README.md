@@ -22,15 +22,8 @@ Generate a token here:   https://github.com/settings/tokens
 
 ### Building
 
-First pull in the requirements:
-
-```
-npm install
-npm run init
-```
-
-Then it's just `npm run build`, or for automatic building as files changes
-`npm run build:watch`.
+Just `npm install` then `npm run build`. For automatic building as files
+changes, run `npm run build:watch`.
 
 ## Running tedium
 
