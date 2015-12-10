@@ -120,7 +120,8 @@ Edit this file, and the bot will squash your changes :)
 ${analyzedElement.desc}
 `;
   }
-  for (const name in behaviorsByName) {
+
+  for (const name of Object.keys(behaviorsByName).sort()) {
     const behavior = behaviorsByName[name];
 
     if (!behavior.desc || behavior.desc.trim() === '') {
