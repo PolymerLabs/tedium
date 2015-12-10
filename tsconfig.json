@@ -1,0 +1,51 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "isolatedModules": true,
+        "declaration": false,
+        "noImplicitAny": true,
+        "removeComments": false,
+        "noLib": false,
+        "preserveConstEnums": true,
+        "suppressImplicitAnyIndexErrors": true
+    },
+    "filesGlob": [
+        "**/*.ts",
+        "**/*.tsx",
+        "!node_modules/**",
+        "typings/tsd.d.ts",
+        "custom_typings/*.d.ts"
+    ],
+    "files": [
+        "cleanup-passes/bower.ts",
+        "cleanup-passes/contribution-guide.ts",
+        "cleanup-passes/readme.ts",
+        "cleanup-passes/tests.ts",
+        "cleanup-passes/travis.ts",
+        "cleanup-passes/util.ts",
+        "cleanup.ts",
+        "custom_typings/command-line-args.d.ts",
+        "custom_typings/dom5.d.ts",
+        "custom_typings/escodegen.d.ts",
+        "custom_typings/espree.d.ts",
+        "custom_typings/estree-walker.d.ts",
+        "custom_typings/github-cache.d.ts",
+        "custom_typings/hydrolysis.d.ts",
+        "custom_typings/main.d.ts",
+        "custom_typings/nodegit.d.ts",
+        "custom_typings/pad.d.ts",
+        "custom_typings/promisify-node.d.ts",
+        "element-repo.ts",
+        "tedium.ts",
+        "typings/js-yaml/js-yaml.d.ts",
+        "typings/node/node.d.ts",
+        "typings/progress/progress.d.ts",
+        "typings/rimraf/rimraf.d.ts",
+        "typings/tsd.d.ts"
+    ],
+    "atom": {
+        "rewriteTsconfig": true
+    }
+}

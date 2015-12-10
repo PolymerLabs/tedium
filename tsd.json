@@ -1,0 +1,21 @@
+{
+  "version": "v4",
+  "repo": "rictic/DefinitelyTyped",
+  "ref": "master",
+  "path": "typings",
+  "bundle": "typings/tsd.d.ts",
+  "installed": {
+    "node/node.d.ts": {
+      "commit": "fc341765ebbb04b7109981a25dced01f488f4d94"
+    },
+    "progress/progress.d.ts": {
+      "commit": "d54b18e0ac3277376700b6026ef9e9e3f380df50"
+    },
+    "rimraf/rimraf.d.ts": {
+      "commit": "fc341765ebbb04b7109981a25dced01f488f4d94"
+    },
+    "js-yaml/js-yaml.d.ts": {
+      "commit": "fc341765ebbb04b7109981a25dced01f488f4d94"
+    }
+  }
+}

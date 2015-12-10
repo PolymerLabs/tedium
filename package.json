@@ -5,8 +5,12 @@
   "main": "tedium.js",
   "bin": "tedium.js",
   "scripts": {
-    "test": "jshint *.js",
-    "test:watch": "watch 'npm test' ./"
+    "test": "tslint *.ts cleanup-passes/*.ts custom_typings/*.ts",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "test:watch": "watch 'npm test' ./",
+    "prepublish": "npm run build",
+    "postinstall": "tsd install"
   },
   "repository": {
     "type": "git",
@@ -23,6 +27,10 @@
   "homepage": "https://github.com/PolymerLabs/tedium#readme",
   "dependencies": {
     "command-line-args": "^2.0.4",
+    "dom5": "^1.3.1",
+    "escodegen": "^1.7.0",
+    "espree": "^2.2.5",
+    "estree-walker": "^0.2.0",
     "github": "^0.2.0",
     "github-cache": "^1.1.0",
     "hydrolysis": "^1.19.3",
@@ -34,7 +42,9 @@
     "rimraf": "^2.4.3"
   },
   "devDependencies": {
-    "jshint": "^2.8.0",
+    "tsd": "^0.6.5",
+    "tslint": "^3.1.1",
+    "typescript": "^1.7.3",
     "watch": "^0.16.0"
   }
 }
