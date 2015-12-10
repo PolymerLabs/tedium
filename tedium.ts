@@ -73,6 +73,7 @@ const cli = cliArgs([
       }
       return {user: parts[0], repo: parts[1]};
     },
+    defaultValue: [],
     multiple: true,
     alias: 'r',
     description:
