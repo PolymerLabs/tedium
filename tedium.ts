@@ -39,7 +39,10 @@ import * as path from 'path';
 import * as ProgressBar from 'progress';
 import * as promisify from 'promisify-node';
 import * as rimraf from 'rimraf';
+import * as stripJsonComments from 'strip-json-comments';
+
 import {cleanup} from './cleanup';
+import {CleanupConfig} from './cleanup-pass';
 import {existsSync} from './cleanup-passes/util';
 import {ElementRepo, PushStatus} from './element-repo';
 
@@ -112,6 +115,13 @@ Generate a token here:   https://github.com/settings/tokens
 `);
   process.exit(1);
 }
+
+interface Config {
+  passes?: CleanupConfig;
+}
+let config: Config =
+    JSON.parse(stripJsonComments(fs.readFileSync('config.json', 'utf8')));
+
 
 const github = connectToGithub();
 
@@ -490,7 +500,7 @@ async function _main(elements: ElementRepo[]) {
     await Promise.resolve()
         .then(checkoutNewBranch.bind(null, element.repo, branchName))
         .then(rateLimit.bind(null, 0))
-        .then(cleanup.bind(null, element))
+        .then(cleanup.bind(null, element, config.passes || {}))
         .then(pushChanges.bind(null, element, branchName, user.login))
         .catch((err) => {
           throw new Error(

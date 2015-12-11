@@ -17,6 +17,8 @@
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
+
+import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo';
 import {existsSync, makeCommit} from './util';
 
@@ -151,4 +153,9 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   }
 }
 
-export let cleanupPasses = [cleanupTravisConfig];
+register({
+  name: 'cleanup travis',
+  pass: cleanupTravisConfig,
+  // Disabled until we've merged all of the polylint changes.
+  runsByDefault: false,
+});

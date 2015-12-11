@@ -7,7 +7,6 @@
         "declaration": false,
         "noImplicitAny": true,
         "removeComments": false,
-        "noLib": false,
         "preserveConstEnums": true,
         "suppressImplicitAnyIndexErrors": true
     },
@@ -19,6 +18,7 @@
         "custom_typings/*.d.ts"
     ],
     "files": [
+        "cleanup-pass.ts",
         "cleanup-passes/bower.ts",
         "cleanup-passes/contribution-guide.ts",
         "cleanup-passes/readme.ts",
@@ -37,6 +37,7 @@
         "custom_typings/nodegit.d.ts",
         "custom_typings/pad.d.ts",
         "custom_typings/promisify-node.d.ts",
+        "custom_typings/strip-json-comments.d.ts",
         "element-repo.ts",
         "tedium.ts",
         "typings/js-yaml/js-yaml.d.ts",

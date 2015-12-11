@@ -16,6 +16,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+
+import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo.ts';
 import {existsSync, makeCommit} from './util';
 
@@ -60,4 +62,8 @@ If you edit this file, your changes will get overridden :)
   await makeCommit(element, ['CONTRIBUTING.md'], commitMessage);
 }
 
-export let cleanupPasses = [generateContributionGuide];
+register({
+  name: 'contribution guide',
+  pass: generateContributionGuide,
+  runsByDefault: true,
+});

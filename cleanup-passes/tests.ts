@@ -20,6 +20,8 @@ import * as espree from 'espree';
 import * as estree_walker from 'estree-walker';
 import * as fs from 'fs';
 import * as path from 'path';
+
+import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo.ts';
 import {existsSync, makeCommit} from './util';
 
@@ -117,4 +119,11 @@ async function addShadowDomTests(element: ElementRepo): Promise<void> {
   }
 }
 
-export let cleanupPasses = [addShadowDomTests];
+register({
+  name: 'add shadow dom tests',
+  pass: addShadowDomTests,
+  // Mark this as true once we've merged all the PRs from this
+  // sheet:
+  // https://docs.google.com/spreadsheets/d/166pE8UwkJQwtUzirEv03kDYQmilKO0-ggZBrrzyDh9g/edit#gid=0
+  runsByDefault: false,
+});
