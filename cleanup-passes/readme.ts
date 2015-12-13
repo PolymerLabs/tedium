@@ -120,8 +120,21 @@ Edit this file, and the bot will squash your changes :)
 ${analyzedElement.desc}
 `;
   }
-
-  for (const name of Object.keys(behaviorsByName).sort()) {
+  // If this repo is named after a behavior, what would that behavior be named?
+  // This turns e.g. iron-a11y-keys-behavior into
+  // Polymer.IronA11yKeysBehavior
+  const canonicalBehaviorName =
+      'Polymer.' + wordsWithDashesToCamelCase(element.ghRepo.name);
+  const behaviorNames = Object.keys(behaviorsByName).sort((l, r) => {
+    if (l === canonicalBehaviorName) {
+      return -1;
+    }
+    if (r === canonicalBehaviorName) {
+      return 1;
+    }
+    return l.localeCompare(r);
+  });
+  for (const name of behaviorNames) {
     const behavior = behaviorsByName[name];
 
     if (!behavior.desc || behavior.desc.trim() === '') {
@@ -146,6 +159,12 @@ ${behavior.desc}
     await makeCommit(
         element, ['README.md'], '[skip ci] Autogenerate README file.');
   }
+}
+
+function wordsWithDashesToCamelCase(wordsWithDashes:string):string {
+  return wordsWithDashes.split('-').map((word) => {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }).join('');
 }
 
 export let cleanupPasses = [generateReadme];
