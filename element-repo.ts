@@ -16,7 +16,18 @@ import {Repo} from 'github-cache';
 import {Analyzer} from 'hydrolysis';
 import * as nodegit from 'nodegit';
 
-export interface ElementRepo {
+export class ElementRepo {
+  constructor(args: {
+    dir: string,
+    ghRepo: Repo,
+    repo: nodegit.Repository,
+    analyzer: Analyzer
+  }) {
+    this.dir = args.dir;
+    this.ghRepo = args.ghRepo;
+    this.repo = args.repo;
+    this.analyzer = args.analyzer;
+  }
 
   /**
    * A relative path like 'repos/paper-input' that's points to a
@@ -44,18 +55,28 @@ export interface ElementRepo {
   /**
    * If true, commits made to the repo will be pushed.
    */
-  dirty?: boolean;
+  dirty: boolean = false;
 
+  private _needsReview: boolean = false;
   /**
    * True if the changes need human review.
    *
    * If true, all changes made to the element will go out into a PR that
    * will be assigned to you. Otherwise the changes will be pushed directly
    * to master. Has no effect if dirty is false.
+   *
+   * Once set to true, it cannot be set to false.
    */
-  needsReview?: boolean;
+  get needsReview(): boolean {
+    return this._needsReview;
+  }
+  set needsReview(value: boolean) {
+    if (this._needsReview === false) {
+      this._needsReview = value;
+    }
+  }
 
-  pushStatus: PushStatus;
+  pushStatus: PushStatus = PushStatus.unpushed;
 }
 
 export enum PushStatus {

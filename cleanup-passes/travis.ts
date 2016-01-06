@@ -31,22 +31,6 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   let travis = yaml.safeLoad(travisConfigBlob);
 
-  // a small state class to represent the decision to make a PR or a commit to head
-  // Once tripped, a PR will be made
-  class Reviewer {
-    private _needsReview = false
-    get needsReview() {
-      return this._needsReview;
-    }
-    set needsReview(value: boolean) {
-      if (!this._needsReview) {
-        this._needsReview = value;
-      }
-    }
-  }
-
-  const review = new Reviewer();
-
   const tools: string[] = [
     'bower',
     'polylint',
@@ -62,19 +46,12 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   // update travis config
   // Add polylint to all elements
   if (Array.isArray(travis.before_script)) {
-    // assume we need review
     const bs: string[] = travis.before_script;
-    if (bs.length !== beforeScript.length) {
+    if (!bs.reduce(
+      (acc, s, idx) => { return acc && (beforeScript[idx] === s) }, true)
+    ) {
       travis.before_script = beforeScript;
-      review.needsReview = true;
-    } else {
-      for (let i = 0; i < bs.length; i++) {
-        if (bs[i] !== beforeScript[i]) {
-          travis.before_script = beforeScript;
-          review.needsReview = true;
-          break;
-        }
-      }
+      element.needsReview = true;
     }
   }
 
@@ -151,11 +128,10 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   if (travisConfigBlob !== updatedTravisConfigBlob) {
     fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, 'utf8');
-    element.needsReview = review.needsReview;
     // if this commit needs review, run the tests
     // otherwise this is probably an innocuous run
     const commitMessage =
-        `${!review.needsReview ? '[ci skip] ' : ''}Update travis config`;
+        `${!element.needsReview ? '[ci skip] ' : ''}Update travis config`;
     await makeCommit(element, ['.travis.yml'], commitMessage);
   }
 }
