@@ -72,6 +72,17 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
     await makeCommit(
         element, ['bower.json'], 'Add an ignore property to bower.json.');
   }
+
+  const wctSemver = '^4.0.0';
+
+  if (bowerConfig.devDependencies) {
+    const dd = bowerConfig.devDependencies;
+    if (dd['web-component-tester'] !== wctSemver) {
+      dd['web-component-tester'] = wctSemver;
+      writeToBower(bowerPath, bowerConfig);
+      await makeCommit(element, ['bower.json'], 'Depend on WCT 4');
+    }
+  }
 }
 
 export let cleanupPasses = [cleanupBower];

@@ -444,21 +444,17 @@ async function _main(elements: ElementRepo[]) {
   // Clone git repos.
   for (const ghRepo of ghRepos) {
     promises.push(Promise.resolve().then(() => {
-      const targetDir = path.join('repos', ghRepo.name);
+      const dir = path.join('repos', ghRepo.name);
       let repoPromise: Promise<nodegit.Repository>;
-      if (existsSync(targetDir)) {
-        repoPromise = nodegit.Repository.open(targetDir);
+      if (existsSync(dir)) {
+        repoPromise = nodegit.Repository.open(dir);
       } else {
         repoPromise = rateLimit(100).then(
-            () => nodegit.Clone.clone(ghRepo.clone_url, targetDir, null));
+            () => nodegit.Clone.clone(ghRepo.clone_url, dir, null));
       }
-      let result = repoPromise.then((repo) => {
-        const elem: ElementRepo =
-            {repo: repo, dir: targetDir, ghRepo: ghRepo, analyzer: null,
-             pushStatus: PushStatus.unpushed};
-        return elem;
-      });
-      return result;
+      return repoPromise.then((repo) =>
+        new ElementRepo({repo, dir, ghRepo, analyzer: null})
+      );
     }));
   }
   elements.push(...await promiseAllWithProgress(promises, 'Cloning repos...'));
