@@ -20,6 +20,22 @@ import * as path from 'path';
 import {ElementRepo} from '../element-repo';
 import {existsSync, makeCommit} from './util';
 
+type TravisEnv = {global?: string[], matrix?: string[]};
+
+interface TravisConfig {
+  before_script?: string[];
+  addons?: {
+    firefox?: string | number,
+    sauce_connect?: boolean,
+    apt?: {
+      packages?: string[],
+      sources?: string[]
+    }
+  };
+  env?: TravisEnv;
+  node_js?: string;
+}
+
 async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   const travisConfigPath = path.join(element.dir, '.travis.yml');
 
@@ -29,7 +45,7 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   const travisConfigBlob = fs.readFileSync(travisConfigPath, 'utf8');
 
-  let travis = yaml.safeLoad(travisConfigBlob);
+  let travis: TravisConfig = yaml.safeLoad(travisConfigBlob);
 
   const tools: string[] = [
     'bower',
@@ -46,10 +62,9 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   // update travis config
   // Add polylint to all elements
   if (Array.isArray(travis.before_script)) {
-    const bs: string[] = travis.before_script;
-    if (!bs.reduce(
-      (acc, s, idx) => { return acc && (beforeScript[idx] === s) }, true)
-    ) {
+    const beforeScriptEqual = travis.before_script.reduce(
+      (acc, s, idx) => { return acc && (beforeScript[idx] === s) }, true);
+    if (!beforeScriptEqual) {
       travis.before_script = beforeScript;
       element.needsReview = true;
     }
@@ -110,12 +125,12 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
     ta.apt.packages.push(ChromePackage);
   }
 
-  // travis env
+  // Shape travis env to object with global and/or matrix arrays
   let te = travis.env;
   if (!te) {
     te = {global: []};
   } else if (Array.isArray(te)) {
-    te = {global: te};
+    te = {global: <string[]>te};
   }
 
   if (te.global.indexOf(C11Env) === -1) {
