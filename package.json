@@ -35,16 +35,16 @@
     "github-cache": "^1.1.0",
     "hydrolysis": "^1.19.3",
     "js-yaml": "^3.4.3",
-    "nodegit": "^0.6.0",
+    "nodegit": "^0.7.0",
     "pad": "^1.0.0",
     "progress": "^1.1.8",
-    "promisify-node": "^0.2.1",
+    "promisify-node": "^0.3.0",
     "rimraf": "^2.4.3"
   },
   "devDependencies": {
     "tsd": "^0.6.5",
     "tslint": "^3.1.1",
     "typescript": "^1.7.3",
-    "watch": "^0.16.0"
+    "watch": "^0.17.1"
   }
 }
