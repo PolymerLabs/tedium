@@ -93,7 +93,7 @@ const cli = cliArgs([
       return passName;
     },
     defaultValue: [],
-    description: "Cleanup passes to run. If this flag is used then only the given passes will run, and they will run even if they're disabled by default."
+    description: `Cleanup passes to run. If this flag is used then only the given passes will run, and they will run even if they're disabled by default. Pass names: ${passNames.join(', ')}`
   }
 ]);
 interface UserRepo {
