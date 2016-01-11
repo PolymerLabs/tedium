@@ -515,16 +515,16 @@ async function _main(elements: ElementRepo[]) {
       cleanupProgress.tick();
       continue;
     }
-    
-    await Promise.resolve()
-        .then(checkoutNewBranch.bind(null, element.repo, branchName))
-        .then(rateLimit.bind(null, 0))
-        .then(cleanup.bind(null, element, config.passes || {}, passesToRun))
-        .then(pushChanges.bind(null, element, branchName, user.login))
-        .catch((err) => {
-          throw new Error(
-              `Error updating ${element.dir}:\n${err.stack || err}`);
-        });
+
+    try {
+      await checkoutNewBranch(element.repo, branchName);
+      await rateLimit(0);
+      await cleanup(element, config.passes || {}, passesToRun);
+      await pushChanges(element, branchName, user.login);
+    } catch (err) {
+      throw new Error(
+          `Error updating ${element.dir}:\n${err.stack || err}`);
+    }
     cleanupProgress.tick();
   }
 
