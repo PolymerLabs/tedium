@@ -13,7 +13,7 @@
  */
 'use strict';
 
-import {Repo} from 'github-cache';
+import {Repo} from 'github';
 import {Analyzer} from 'hydrolysis';
 import * as nodegit from 'nodegit';
 

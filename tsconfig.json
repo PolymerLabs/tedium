@@ -31,7 +31,7 @@
         "custom_typings/escodegen.d.ts",
         "custom_typings/espree.d.ts",
         "custom_typings/estree-walker.d.ts",
-        "custom_typings/github-cache.d.ts",
+        "custom_typings/github.d.ts",
         "custom_typings/hydrolysis.d.ts",
         "custom_typings/main.d.ts",
         "custom_typings/nodegit.d.ts",

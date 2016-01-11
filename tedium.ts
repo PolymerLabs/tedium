@@ -31,7 +31,7 @@
 
 import * as cliArgs from 'command-line-args';
 import * as fs from 'fs';
-import * as GitHub from 'github-cache';
+import * as GitHub from 'github';
 import * as hydrolysis from 'hydrolysis';
 import * as nodegit from 'nodegit';
 import * as pad from 'pad';
@@ -342,8 +342,6 @@ function connectToGithub() {
   const github = new GitHub({
     version: "3.0.0",
     protocol: "https",
-    cachedb: './.github-cachedb',
-    validateCache: true
   });
 
   github.authenticate({type: 'oauth', token: GITHUB_TOKEN});

@@ -1,9 +1,7 @@
-declare module 'github-cache' {
+declare module 'github' {
   interface Options {
     version: string;
     protocol: string;
-    cachedb: string;
-    validateCache: boolean;
   }
   interface CreatePullRequestOpts {
     user: string;
