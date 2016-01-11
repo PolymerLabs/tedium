@@ -120,7 +120,7 @@ async function addShadowDomTests(element: ElementRepo): Promise<void> {
 }
 
 register({
-  name: 'add shadow dom tests',
+  name: 'add-shadow-dom-tests',
   pass: addShadowDomTests,
   // Mark this as true once we've merged all the PRs from this
   // sheet:

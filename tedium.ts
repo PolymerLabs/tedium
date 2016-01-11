@@ -41,12 +41,13 @@ import * as promisify from 'promisify-node';
 import * as rimraf from 'rimraf';
 import * as stripJsonComments from 'strip-json-comments';
 
+import './cleanup-passes/register-all';
 import {cleanup} from './cleanup';
-import {CleanupConfig} from './cleanup-pass';
+import {CleanupConfig, getPasses} from './cleanup-pass';
 import {existsSync} from './cleanup-passes/util';
 import {ElementRepo, PushStatus} from './element-repo';
 
-
+const passNames = getPasses().map(p => p.name);
 const cli = cliArgs([
   {name: "help", type: Boolean, alias: "h", description: "Print usage."},
   {
@@ -82,6 +83,18 @@ const cli = cliArgs([
     description:
         'Explicit repos to process. Specifying explicit repos will disable running on the implicit set of repos for the user.'
   },
+  {
+    name: 'pass',
+    multiple: true,
+    type: (passName) => {
+      if (passNames.indexOf(passName) < 0) {
+        throw new Error(`Unknown cleanup pass name "${passName}"`);
+      }
+      return passName;
+    },
+    defaultValue: [],
+    description: "Cleanup passes to run. If this flag is used then only the given passes will run, and they will run even if they're disabled by default."
+  }
 ]);
 interface UserRepo {
   user: string;
@@ -91,6 +104,7 @@ interface Options {
   help: boolean;
   max_changes: number;
   repo: UserRepo[];
+  pass: string[];
 }
 const opts: Options = cli.parse();
 
@@ -493,14 +507,19 @@ async function _main(elements: ElementRepo[]) {
   const cleanupProgress =
       standardProgressBar('Applying transforms...', elements.length);
   for (const element of elements) {
+    let passesToRun: string[] = null;
+    if (opts.pass.length > 0) {
+      passesToRun = opts.pass;
+    }
     if (excludes.has(element.dir)) {
       cleanupProgress.tick();
       continue;
     }
+    
     await Promise.resolve()
         .then(checkoutNewBranch.bind(null, element.repo, branchName))
         .then(rateLimit.bind(null, 0))
-        .then(cleanup.bind(null, element, config.passes || {}))
+        .then(cleanup.bind(null, element, config.passes || {}, passesToRun))
         .then(pushChanges.bind(null, element, branchName, user.login))
         .catch((err) => {
           throw new Error(

@@ -63,7 +63,7 @@ If you edit this file, your changes will get overridden :)
 }
 
 register({
-  name: 'contribution guide',
+  name: 'contribution-guide',
   pass: generateContributionGuide,
   runsByDefault: true,
 });

@@ -154,7 +154,7 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 }
 
 register({
-  name: 'cleanup travis',
+  name: 'travis',
   pass: cleanupTravisConfig,
   // Disabled until we've merged all of the polylint changes.
   runsByDefault: false,

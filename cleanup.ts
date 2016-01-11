@@ -14,12 +14,7 @@
 
 'use strict';
 
-import './cleanup-passes/bower';
-import './cleanup-passes/contribution-guide';
-import './cleanup-passes/readme';
-import './cleanup-passes/tests';
-import './cleanup-passes/travis';
-
+import './cleanup-passes/register-all';
 import {ElementRepo} from './element-repo';
 import {getPasses, CleanupConfig} from './cleanup-pass';
 
@@ -34,12 +29,15 @@ import {getPasses, CleanupConfig} from './cleanup-pass';
  * To add a cleanup step, just add it to the array of passes above.
  */
 export async function cleanup(
-    element: ElementRepo, config: CleanupConfig): Promise<void> {
-  for (const step of getPasses()) {
-    const stepConfig = config[step.name] || {};
-    if (!step.runsByDefault) {
-      continue;
+    element: ElementRepo, config: CleanupConfig, passesToRun?: string[]) {
+  const passes = getPasses().filter(p => {
+    if (passesToRun == null) {
+      return p.runsByDefault;
     }
+    return passesToRun.indexOf(p.name) >= 0;
+  });
+  for (const step of passes) {
+    const stepConfig = config[step.name] || {};
     if (stepConfig.blacklist &&
         stepConfig.blacklist.indexOf(element.dir) !== -1) {
       continue;

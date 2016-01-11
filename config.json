@@ -1,3 +1,6 @@
+// (This file is JSON with the extension that JS comments are allowed.)
+
+// A default config for Polymer team's use.
 {
   "passes": {
     "readme": {

@@ -22,6 +22,7 @@
         "cleanup-passes/bower.ts",
         "cleanup-passes/contribution-guide.ts",
         "cleanup-passes/readme.ts",
+        "cleanup-passes/register-all.ts",
         "cleanup-passes/tests.ts",
         "cleanup-passes/travis.ts",
         "cleanup-passes/util.ts",
