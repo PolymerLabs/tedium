@@ -216,9 +216,13 @@ function promiseAllWithProgress<T>(
 }
 
 function standardProgressBar(label: string, total: number) {
-  return new ProgressBar(
+  const pb = new ProgressBar(
       `${pad(label, progressMessageWidth)} [:bar] :percent`,
-      {total, width: progressBarWidth})
+      {total, width: progressBarWidth}
+    );
+  // force the progress bar to start at 0%
+  pb.render();
+  return pb;
 }
 
 /**
