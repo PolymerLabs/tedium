@@ -20,7 +20,7 @@ import * as path from 'path';
 import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo.ts';
 import {existsSync, makeCommit} from './util';
-
+import {injectAutodetectedLanguage} from '../markdown-lang-autodetect';
 
 /**
  * Generates README.md for the element, unless it's in the blacklist.
@@ -50,6 +50,9 @@ ${Array.from(implementationFiles).sort().join('  ')}
 
 Edit those files, and our readme bot will duplicate them over here!
 Edit this file, and the bot will squash your changes :)
+
+The bot does some handling of markdown. Please file a bug if it does the wrong
+thing! https://github.com/PolymerLabs/tedium/issues
 
 -->
 
@@ -92,7 +95,7 @@ Edit this file, and the bot will squash your changes :)
     readmeContents += `
 ##&lt;${tagName}&gt;
 
-${analyzedElement.desc}
+${injectAutodetectedLanguage(analyzedElement.desc)}
 `;
   }
   // If this repo is named after a behavior, what would that behavior be named?
@@ -120,7 +123,7 @@ ${analyzedElement.desc}
     readmeContents += `
 ##${name}
 
-${behavior.desc}
+${injectAutodetectedLanguage(behavior.desc)}
 `;
   }
 
