@@ -28,6 +28,11 @@
         "repos/platinum-sw",
         "repos/neon-animation"
       ]
+    },
+    "travis": {
+      "blacklist": [
+        "repos/polymer-starter-kit"
+      ]
     }
   }
 }
