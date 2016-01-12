@@ -16,6 +16,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+
+import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo.ts';
 import {existsSync, makeCommit} from './util';
 
@@ -24,33 +26,6 @@ import {existsSync, makeCommit} from './util';
  * Generates README.md for the element, unless it's in the blacklist.
  */
 async function generateReadme(element: ElementRepo): Promise<void> {
-  const manualReadmeRepos = new Set([
-    'repos/molecules',
-    'repos/iron-elements',
-    'repos/paper-elements',
-    'repos/neon-elements',
-    'repos/gold-elements',
-    'repos/platinum-elements',
-    'repos/seed-element',
-    'repos/app-layout-templates',
-    'repos/polymer-starter-kit',
-    'repos/quick-element',
-    'repos/font-roboto',
-    'repos/iron-test-helpers',
-    'repos/font-roboto-local',
-
-    // Temporary:
-    // Blocked on https://github.com/Polymer/hydrolysis/issues/188
-    'repos/iron-iconset',
-    // Blocked on getting the order of elements more correct, and moving the
-    // extra documentation that's currently only in the README somewhere
-    // that tedium can access.
-    'repos/platinum-sw',
-    'repos/neon-animation',
-  ]);
-  if (manualReadmeRepos.has(element.dir)) {
-    return;
-  }
   const implementationFiles = new Set();
 
   const elementsByTagName = {};
@@ -167,4 +142,8 @@ function wordsWithDashesToCamelCase(wordsWithDashes:string):string {
   }).join('');
 }
 
-export let cleanupPasses = [generateReadme];
+register({
+  name: 'readme',
+  pass: generateReadme,
+  runsByDefault: true,
+});

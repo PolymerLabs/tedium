@@ -14,16 +14,9 @@
 
 'use strict';
 
-import {cleanupPasses as bowerPasses} from './cleanup-passes/bower';
-import {cleanupPasses as readmePasses} from './cleanup-passes/readme';
-import {cleanupPasses as testPasses} from './cleanup-passes/tests';
-import {cleanupPasses as travisPasses} from './cleanup-passes/travis';
-import {CleanupPass} from './cleanup-passes/util';
+import './cleanup-passes/register-all';
 import {ElementRepo} from './element-repo';
-
-
-const cleanupPasses: CleanupPass[] =
-    [].concat(bowerPasses, readmePasses, testPasses, travisPasses);
+import {getPasses, CleanupConfig} from './cleanup-pass';
 
 /**
  * The meat of the implementation. If any cleanup step makes any changes it
@@ -35,8 +28,20 @@ const cleanupPasses: CleanupPass[] =
  *
  * To add a cleanup step, just add it to the array of passes above.
  */
-export async function cleanup(element: ElementRepo): Promise<void> {
-  for (const step of cleanupPasses) {
-    await step(element);
+export async function cleanup(
+    element: ElementRepo, config: CleanupConfig, passesToRun?: string[]) {
+  const passes = getPasses().filter(p => {
+    if (passesToRun == null) {
+      return p.runsByDefault;
+    }
+    return passesToRun.indexOf(p.name) >= 0;
+  });
+  for (const step of passes) {
+    const stepConfig = config[step.name] || {};
+    if (stepConfig.blacklist &&
+        stepConfig.blacklist.indexOf(element.dir) !== -1) {
+      continue;
+    }
+    await step.pass(element);
   }
 }

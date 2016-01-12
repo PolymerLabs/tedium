@@ -16,6 +16,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+
+import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo.ts';
 import {existsSync, makeCommit} from './util';
 
@@ -85,4 +87,8 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
   }
 }
 
-export let cleanupPasses = [cleanupBower];
+register({
+  name: 'bower',
+  pass: cleanupBower,
+  runsByDefault: true,
+});

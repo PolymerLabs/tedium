@@ -1,0 +1,33 @@
+// (This file is JSON with the extension that JS comments are allowed.)
+
+// A default config for Polymer team's use.
+{
+  "passes": {
+    "readme": {
+      "blacklist": [
+        "repos/molecules",
+        "repos/iron-elements",
+        "repos/paper-elements",
+        "repos/neon-elements",
+        "repos/gold-elements",
+        "repos/platinum-elements",
+        "repos/seed-element",
+        "repos/app-layout-templates",
+        "repos/polymer-starter-kit",
+        "repos/quick-element",
+        "repos/font-roboto",
+        "repos/iron-test-helpers",
+        "repos/font-roboto-local",
+
+        // Temporary:
+        // Blocked on https://github.com/Polymer/hydrolysis/issues/188
+        "repos/iron-iconset",
+        // Blocked on getting the order of elements more correct, and moving the
+        // extra documentation that's currently only in the README somewhere
+        // that tedium can access.
+        "repos/platinum-sw",
+        "repos/neon-animation"
+      ]
+    }
+  }
+}

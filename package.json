@@ -39,7 +39,8 @@
     "pad": "^1.0.0",
     "progress": "^1.1.8",
     "promisify-node": "^0.3.0",
-    "rimraf": "^2.4.3"
+    "rimraf": "^2.4.3",
+    "strip-json-comments": "^2.0.0"
   },
   "devDependencies": {
     "tsd": "^0.6.5",
