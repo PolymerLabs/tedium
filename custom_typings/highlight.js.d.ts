@@ -1,7 +1,7 @@
 declare module 'highlight.js' {
   interface HighlightAutoResult {
     /** detected language */
-    language:string;
+    language: string;
     /** integer value */
     relevance: number;
     /** HTML with highlighting markup */
