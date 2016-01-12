@@ -32,7 +32,6 @@
     "espree": "^2.2.5",
     "estree-walker": "^0.2.0",
     "github": "^0.2.0",
-    "github-cache": "^1.1.0",
     "hydrolysis": "^1.19.3",
     "js-yaml": "^3.4.3",
     "nodegit": "^0.7.0",
