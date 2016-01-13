@@ -33,15 +33,14 @@ import {AllHtmlEntities as entities} from 'html-entities';
 class MarkdownMarkdownRenderer {
 
   code(code:string, lang:string, escaped:boolean) {
-    // These lines are the reason for this entire file!
+    if (escaped) {
+      code = entities.decode(code);
+    }
+    // These three lines are the reason for this entire file!
     // Here we automatically detect the language for the given code snippet
     // and inject it into the output markdown.
     if (!lang) {
-      lang = highlight.highlightAuto(
-          code, ['html', 'css', 'javascript']).language;
-    }
-    if (escaped) {
-      code = entities.decode(code);
+      lang = inferLanguage(code);
     }
     return `\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
   }
@@ -106,11 +105,11 @@ class MarkdownMarkdownRenderer {
   }
 
   strong(text:string) {
-    return `*${text}*`;
+    return `__${text}__`;
   }
 
   em(text:string) {
-    return `_${text}_`;
+    return `*${text}*`;
   }
 
   codespan(text:string) {
@@ -142,6 +141,17 @@ class MarkdownMarkdownRenderer {
     return entities.decode(text);
   }
 
+}
+
+function inferLanguage(code:string):string {
+  if (/<script>/.test(code)) {
+    return 'html';
+  }
+  if (/Polymer\(\s*\{/.test(code)) {
+    return 'javascript';
+  }
+  return highlight.highlightAuto(
+      code, ['html', 'css', 'javascript']).language;
 }
 
 export function injectAutodetectedLanguage(markdownText: string): string {
