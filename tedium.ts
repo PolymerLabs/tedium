@@ -499,7 +499,7 @@ async function _main(elements: ElementRepo[]) {
     'repos/style-guide',
     'repos/test-all',
     'repos/ContributionGuide',
-    'repos/polymer',
+    // 'repos/polymer',
 
     // Temporary, because of a weird unknown 403?:
     'repos/paper-listbox',
