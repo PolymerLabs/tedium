@@ -60,14 +60,14 @@ thing! https://github.com/PolymerLabs/tedium/issues
 
   if (existsSync(path.join(element.dir, '.travis.yml'))) {
     readmeContents +=
-        `[![Build Status](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name}.svg?branch=master)](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name})\n\n`;
+        `[![Build status](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name}.svg?branch=master)](https://travis-ci.org/${element.ghRepo.owner.login}/${element.ghRepo.name})\n\n`;
   }
 
   // These elements are going to have a page in the element catalog.
   if (/^(gold|platinum|paper|neon|iron|carbon)-/.test(
           element.ghRepo.name)) {
     readmeContents +=
-        `_[Demo and API Docs](https://elements.polymer-project.org/elements/${element.ghRepo.name})_` +
+        `_[Demo and API docs](https://elements.polymer-project.org/elements/${element.ghRepo.name})_` +
         '\n\n';
   }
 
