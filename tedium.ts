@@ -499,6 +499,7 @@ async function _main(elements: ElementRepo[]) {
     'repos/style-guide',
     'repos/test-all',
     'repos/ContributionGuide',
+    'repos/molecules', // Was deleted
     'repos/polymer',
 
     // Temporary, because of a weird unknown 403?:
