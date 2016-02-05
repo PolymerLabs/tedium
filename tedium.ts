@@ -183,6 +183,9 @@ async function getRepos(): Promise<GitHub.Repo[]> {
         break;
       }
     }
+    repos.push(
+        await promisify(github.repos.get)(
+            {user: 'PolymerLabs', repo: 'promise-polyfill'}));
     progressBar.tick();
   }
 
@@ -499,10 +502,7 @@ async function _main(elements: ElementRepo[]) {
     'repos/style-guide',
     'repos/test-all',
     'repos/ContributionGuide',
-    // 'repos/polymer',
-
-    // Temporary, because of a weird unknown 403?:
-    'repos/paper-listbox',
+    'repos/polymer',
   ]);
 
   const branchName = 'auto-cleanup';

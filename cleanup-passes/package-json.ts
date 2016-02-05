@@ -35,7 +35,6 @@ const dependencyMap = {
   "web-animations-js": "web-animations-js",
   "sw-toolbox": "sw-toolbox",
   "fetch": "whatwg-fetch",
-  // TODO: need to tedium the following separately with --repo
   "promise-polyfill": "@polymer/promise-polyfill",
   "app-layout": "@polymer/app-layout",
 };
@@ -48,31 +47,47 @@ function getNpmName(name: string, version: string) {
   if (version.startsWith('polymerelements/')) {
     return `@polymer/${name}`;
   }
+  throw new Error(`no npm name mapping found for ${name}:${version}`);
 }
 
-function getPackageVersion(name: string) {
+// TODO(justinfagnani): remove all special case versions
+const polymerVersion = '1.2.5-npm-test.2';
+const elementVersion = '0.0.3';
+const promisePolyfillVersion = '1.0.0-npm-test.2';
+
+function getPackageVersion(name: string, version: string) {
   if (name === 'polymer') {
-    return '1.2.5-npm-test.1';
-  } else {
-    return '0.0.1';
+    return polymerVersion;
   }
+  // I accidentally published iron-ajax with a dep on promise-polyfill 1.0.0
+  if (name === 'promise-polyfill') {
+    return promisePolyfillVersion;
+  }
+  return elementVersion;
 }
 
 function getDependencyVersion(name: string, version: string) {
   version = version.toLowerCase();
   if (name === 'polymer') {
-    return '1.2.5-npm-test.1';
-  } else if (version.startsWith('polymerelements/')) {
-    return '^0.0.1';
+    return '^' + polymerVersion;
+  }
+  // I accidentally published iron-ajax with a dep on promise-polyfill 1.0.0
+  if (version.startsWith('polymerlabs/promise-polyfill')) {
+    return '^' + promisePolyfillVersion;
+  }
+  if ((version.startsWith('polymerelements/') ||
+      version.startsWith('polymerlabs/') ||
+      version.startsWith('polymer/')) &&
+      !dependencyMap[name]) {
+    return '^' + elementVersion;
   }
   return version.substring(version.indexOf('#') + 1);
 }
 
 /**
- * Cleans up a number of common bower problems, like no "main" attribute,
- * "main" being an array rather than a string, etc.
+ * Generate or update package.json from bower.json
  */
-async function cleanupNpm(element: ElementRepo): Promise<void> {
+async function generatePackageJson(element: ElementRepo): Promise<void> {
   const writeJson = (filePath: string, config: Object) => {
     let fullPath = path.join(element.dir, filePath);
     fs.writeFileSync(fullPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
@@ -93,20 +108,17 @@ async function cleanupNpm(element: ElementRepo): Promise<void> {
     throw new Error('bower.json not found');
   }
 
-  if (bowerConfig['name'] !== 'polymer' && npmConfig['name']) {
-    console.warn(`\nunexpected existing package.json for ${element.repo}`);
-    // throw new Error(`unexpected existing package.json for ${element.repo}`);
-  }
-
+  // copies a property from bower.json to package.json
+  // bower.json is the source of truth
   const copyProperty = (name: string, bowerName?: string) =>
       npmConfig[name] = bowerConfig[bowerName || name] || npmConfig[name];
 
   npmConfig['name'] = `@polymer/${bowerConfig['name']}`;
-  npmConfig['version'] = getPackageVersion(bowerConfig['name']);
+  npmConfig['version'] = getPackageVersion(bowerConfig['name'], bowerConfig['version']);
 
   // properties that can be directly copied
-  ['description', 'repository', 'ignore', 'keywords']
-      .forEach((s, _) => copyProperty(s));
+  ['description', 'repository', 'keywords']
+      .forEach((s) => copyProperty(s));
 
   // authors => contributors
   // https://docs.npmjs.com/files/package.json#people-fields-author-contributors
@@ -121,43 +133,30 @@ async function cleanupNpm(element: ElementRepo): Promise<void> {
   let npmDependencies = npmConfig['dependencies'] =
       npmConfig['dependencies'] || {};
   let bowerDependencies = bowerConfig['dependencies'] || {};
+
   let npmDevDependencies = npmConfig['devDependencies'] =
       npmConfig['devDependencies'] || {};
-  let bowerDevDependencies = bowerConfig['devDependencies'] =
-      bowerConfig['devDependencies'] || {};
-
-  npmDevDependencies['web-component-tester'] = '^4.0.0';
+  let bowerDevDependencies = bowerConfig['devDependencies'] || {};
 
   for (let bowerDep in bowerDependencies) {
     let bowerVersion = bowerDependencies[bowerDep];
     let npmDep = getNpmName(bowerDep, bowerVersion);
-    if (!npmDep) {
-      // console.warn(`*** no npm name mapping found for ${bowerDep}:${bowerVersion} in ${bowerConfig['name']}`);
-      throw new Error(`no npm name mapping found for ${bowerDep}:${bowerVersion} in ${bowerConfig['name']}`);
-    }
     npmDependencies[npmDep] = getDependencyVersion(bowerDep, bowerVersion);
   }
 
   for (let bowerDep in bowerDevDependencies) {
     let bowerVersion = bowerDevDependencies[bowerDep];
     let npmDep = getNpmName(bowerDep, bowerVersion);
-    if (!npmDep) {
-      // console.warn(`*** no npm name mapping found for ${bowerDep}:${bowerVersion} in ${bowerConfig['name']}`);
-      throw new Error(`no npm name mapping found for ${bowerDep}:${bowerVersion} in ${bowerConfig['name']}`);
-    }
-    bowerDevDependencies[npmDep] = getDependencyVersion(bowerDep, bowerVersion);
+    npmDevDependencies[npmDep] = getDependencyVersion(bowerDep, bowerVersion);
   }
-
-  console.log(`\npackage.json for ${element.repo}`, JSON.stringify(npmConfig, null, 2));
 
   writeJson('package.json', npmConfig);
 
-  // element.needsReview = true;
-  await makeCommit(element, ['package.json'], 'Update package.json');
+  await makeCommit(element, ['package.json'], 'Generate/update package.json');
 }
 
 register({
-  name: 'npm',
-  pass: cleanupNpm,
+  name: 'package-json',
+  pass: generatePackageJson,
   runsByDefault: false,
 });
