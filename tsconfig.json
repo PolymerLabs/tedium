@@ -14,7 +14,7 @@
         "**/*.ts",
         "**/*.tsx",
         "!node_modules/**",
-        "typings/tsd.d.ts",
+        "typings/main.d.ts",
         "custom_typings/*.d.ts"
     ],
     "files": [
@@ -44,12 +44,7 @@
         "element-repo.ts",
         "markdown-lang-autodetect.ts",
         "tedium.ts",
-        "typings/js-yaml/js-yaml.d.ts",
-        "typings/marked/marked.d.ts",
-        "typings/node/node.d.ts",
-        "typings/progress/progress.d.ts",
-        "typings/rimraf/rimraf.d.ts",
-        "typings/tsd.d.ts"
+        "typings/main.d.ts"
     ],
     "atom": {
         "rewriteTsconfig": true
