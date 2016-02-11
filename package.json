@@ -10,7 +10,7 @@
     "build:watch": "tsc -w",
     "test:watch": "watch 'npm test' ./",
     "prepublish": "npm run build",
-    "postinstall": "tsd install"
+    "postinstall": "typings install"
   },
   "repository": {
     "type": "git",
@@ -45,9 +45,9 @@
     "strip-json-comments": "^2.0.0"
   },
   "devDependencies": {
-    "tsd": "^0.6.5",
     "tslint": "^3.1.1",
     "typescript": "^1.7.3",
+    "typings": "^0.6.8",
     "watch": "^0.17.1"
   }
 }

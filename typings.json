@@ -1,0 +1,10 @@
+{
+  "name": "tedium",
+  "ambientDependencies": {
+    "node": "github:rictic/DefinitelyTyped/node/node.d.ts#fc341765ebbb04b7109981a25dced01f488f4d94",
+    "progress": "github:rictic/DefinitelyTyped/progress/progress.d.ts#d54b18e0ac3277376700b6026ef9e9e3f380df50",
+    "rimraf": "github:rictic/DefinitelyTyped/rimraf/rimraf.d.ts#fc341765ebbb04b7109981a25dced01f488f4d94",
+    "js-yaml": "github:rictic/DefinitelyTyped/js-yaml/js-yaml.d.ts#fc341765ebbb04b7109981a25dced01f488f4d94",
+    "marked": "github:rictic/DefinitelyTyped/marked/marked.d.ts#e5a27ea95e47b95333784f1f0d590127b4e39a89"
+  }
+}
