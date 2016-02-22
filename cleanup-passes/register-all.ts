@@ -4,3 +4,4 @@ import './package-json';
 import './readme';
 import './tests';
 import './travis';
+import './issue-template';
