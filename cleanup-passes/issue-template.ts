@@ -22,18 +22,21 @@ import {ElementRepo} from '../element-repo';
 import {existsSync, makeCommit} from './util';
 
 const ISSUE_TEMPLATE =
-`## Description
+`### Description
 <!-- Example: The \`paper-foo\` element causes the page to turn pink when clicked. -->
 
-## Expected outcome
+### Expected outcome
 
 <!-- Example: The page stays the same color. -->
 
-## Actual outcome
+### Actual outcome
 
 <!-- Example: The page turns pink. -->
 
-## Steps to reproduce
+### Live Demo
+<!-- Example: https://jsbin.com/cagaye/edit?html,output -->
+
+### Steps to reproduce
 
 <!-- Example
 1. Put a \`paper-foo\` element in the page.
@@ -41,7 +44,7 @@ const ISSUE_TEMPLATE =
 3. Click the \`paper-foo\` element.
 -->
 
-## Browsers Affected
+### Browsers Affected
 <!-- Check all that apply -->
 - [ ] Chrome
 - [ ] Firefox
