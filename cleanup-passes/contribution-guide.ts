@@ -19,7 +19,7 @@ import * as path from 'path';
 
 import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo.ts';
-import {existsSync, makeCommit} from './util';
+import {existsSync, makeCommit, getJsBinLink} from './util';
 
 /**
  * Generates the CONTRIBUTING.md file for the element.
@@ -31,7 +31,6 @@ async function generateContributionGuide(element: ElementRepo): Promise<void> {
         'Couldn\'t find canonical contribution guide. git checkout error?');
   }
 
-  const defaultJsbinLink = 'https://jsbin.com/cagaye/edit?html,output'
   let contributionGuideContents =
       fs.readFileSync(pathToCanonicalGuide, 'utf8');
   const pathToExistingGuide = path.join(element.dir, 'CONTRIBUTING.md');
@@ -42,14 +41,7 @@ async function generateContributionGuide(element: ElementRepo): Promise<void> {
     existingGuideContents = fs.readFileSync(pathToExistingGuide, 'utf8');
   }
 
-  let desiredJsbinLink = defaultJsbinLink;
-  // Extract the line that looks like:
-  //     jsbin=https://jsbin.com/...
-  const m = existingGuideContents.match(
-      /\n\s*jsbin\s*=\s*(https:\/\/jsbin\.com\/[^\s]*)/)
-  if (m) {
-    desiredJsbinLink = m[1];
-  }
+  let desiredJsbinLink = getJsBinLink(element);
   // Replace the markdown link to jsbin with the intended one.
   // The existing one will look like:
   //     [http://jsbin.com/cagye](http://jsbin.com/cagye/edit?html,javascript)
