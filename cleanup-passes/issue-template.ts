@@ -88,5 +88,5 @@ async function addIssueTemplate(element: ElementRepo): Promise<void> {
 register({
   name: 'issue-template',
   pass: addIssueTemplate,
-  runsByDefault: false
+  runsByDefault: true
 })
