@@ -21,6 +21,9 @@ import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo';
 import {existsSync, makeCommit, getJsBinLink} from './util';
 
+const issueTemplateName = 'ISSUE_TEMPLATE.md';
+const repoTemplatePath = path.join('.github', issueTemplateName);
+
 async function addIssueTemplate(element: ElementRepo): Promise<void> {
   const shortName = `${element.ghRepo.owner.login}/${element.ghRepo.name}`;
   const issueTemplate =
@@ -63,7 +66,7 @@ async function addIssueTemplate(element: ElementRepo): Promise<void> {
   if (!existsSync(templateFolderPath)) {
     fs.mkdirSync(templateFolderPath);
   }
-  const templatePath = path.join(templateFolderPath, 'ISSUE_TEMPLATE.md');
+  const templatePath = path.join(element.dir, repoTemplatePath);
   let templateContent = '';
   let templateExisted = false;
   if (existsSync(templatePath)) {
@@ -77,8 +80,9 @@ async function addIssueTemplate(element: ElementRepo): Promise<void> {
   }
 
   fs.writeFileSync(templatePath, templateContent, 'utf8');
-  const message = `[ci skip] ${templateExisted ? 'Add' : 'Update'} Issue Template`;
-  await makeCommit(element, [templatePath], message);
+  const message = `[ci skip] ${templateExisted ? 'Update' : 'Add'} Issue Template`;
+  console.log(templatePath);
+  await makeCommit(element, [repoTemplatePath], message);
 }
 
 register({
