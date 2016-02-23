@@ -16,6 +16,7 @@
 
 import * as nodegit from 'nodegit';
 import * as fs from 'fs';
+import * as path from 'path';
 import {ElementRepo} from '../element-repo';
 
 /**
@@ -31,8 +32,7 @@ export function existsSync(fn: string): boolean {
 }
 
 /**
- * Creates a commit for t
-he element and marks it as dirty.
+ * Creates a commit for the element and marks it as dirty.
  */
 export async function makeCommit(
     element: ElementRepo, files: string[],
@@ -43,4 +43,24 @@ export async function makeCommit(
   element.dirty = true;
   await element.repo.createCommitOnHead(
       files, getSignature(), getSignature(), commitMessage);
+}
+
+/**
+ * Given an element repo, return the canonical JSBin example
+ */
+export function getJsBinLink(element: ElementRepo): string {
+  // default jsbin
+  let jsbin = 'https://jsbin.com/cagaye/edit?html,output';
+  const pathToGuide = path.join(element.dir, 'CONTRIBUTING.md');
+  if (existsSync(pathToGuide)) {
+    const guideContents = fs.readFileSync(pathToGuide, 'utf8');
+    // Extract the line that looks like:
+    //     jsbin=https://jsbin.com/...
+    const m = guideContents.match(
+        /\n\s*jsbin\s*=\s*(https:\/\/jsbin\.com\/[^\s]*)/);
+    if (m) {
+      jsbin = m[1];
+    }
+  }
+  return jsbin;
 }

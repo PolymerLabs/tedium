@@ -19,10 +19,13 @@ import * as path from 'path';
 
 import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo';
-import {existsSync, makeCommit} from './util';
+import {existsSync, makeCommit, getJsBinLink} from './util';
 
-const ISSUE_TEMPLATE =
-`### Description
+async function addIssueTemplate(element: ElementRepo): Promise<void> {
+  const shortName = `${element.ghRepo.owner.login}/${element.ghRepo.name}`;
+  const issueTemplate =
+`<!-- Instructions: https://github.com/${shortName}/CONTRIBUTING.md#filing-issues -->
+### Description
 <!-- Example: The \`paper-foo\` element causes the page to turn pink when clicked. -->
 
 ### Expected outcome
@@ -34,7 +37,7 @@ const ISSUE_TEMPLATE =
 <!-- Example: The page turns pink. -->
 
 ### Live Demo
-<!-- Example: https://jsbin.com/cagaye/edit?html,output -->
+<!-- Example: ${getJsBinLink(element)} -->
 
 ### Steps to reproduce
 
@@ -56,27 +59,26 @@ const ISSUE_TEMPLATE =
 - [ ] IE 10
 `;
 
-async function addIssueTemplate(element: ElementRepo): Promise<void> {
   const templateFolderPath = path.join(element.dir, '.github');
   if (!existsSync(templateFolderPath)) {
     fs.mkdirSync(templateFolderPath);
   }
   const templatePath = path.join(templateFolderPath, 'ISSUE_TEMPLATE.md');
   let templateContent = '';
+  let templateExisted = false;
   if (existsSync(templatePath)) {
-    templateContent = fs.readFileSync(templatePath, 'utf-8');
-  }
-  if (templateContent === ISSUE_TEMPLATE) {
-    return;
+    templateContent = fs.readFileSync(templatePath, 'utf8');
+    templateExisted = true;
+    if (templateContent === issueTemplate) {
+      return;
+    }
+  } else {
+    templateContent = issueTemplate;
   }
 
-  const shortName = `${element.ghRepo.owner.login}/${element.ghRepo.name}`;
-  templateContent =
-  `<!-- Instructions: https://github.com/${shortName}/CONTRIBUTING.md#filing-issues -->
-  ${ISSUE_TEMPLATE}`;
-
-  fs.writeFileSync(templatePath, templateContent, 'utf-8');
-  await makeCommit(element, [templatePath], '[ci skip] Update Issue Template');
+  fs.writeFileSync(templatePath, templateContent, 'utf8');
+  const message = `[ci skip] ${templateExisted ? 'Add' : 'Update'} Issue Template`;
+  await makeCommit(element, [templatePath], message);
 }
 
 register({
