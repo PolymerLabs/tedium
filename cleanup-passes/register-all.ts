@@ -5,3 +5,4 @@ import './readme';
 import './tests';
 import './travis';
 import './issue-template';
+import './license-header'

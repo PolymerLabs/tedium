@@ -1,10 +1,12 @@
 {
   "name": "tedium",
   "ambientDependencies": {
+    "glob": "github:DefinitelyTyped/DefinitelyTyped/glob/glob.d.ts#a14d724826174d1669d4df04c80f4838b7e71fdf",
+    "js-yaml": "github:rictic/DefinitelyTyped/js-yaml/js-yaml.d.ts#fc341765ebbb04b7109981a25dced01f488f4d94",
+    "marked": "github:rictic/DefinitelyTyped/marked/marked.d.ts#e5a27ea95e47b95333784f1f0d590127b4e39a89",
+    "minimatch": "github:DefinitelyTyped/DefinitelyTyped/minimatch/minimatch.d.ts#a3900b896f7b3361b79f9b503224777619907d53",
     "node": "github:rictic/DefinitelyTyped/node/node.d.ts#fc341765ebbb04b7109981a25dced01f488f4d94",
     "progress": "github:rictic/DefinitelyTyped/progress/progress.d.ts#d54b18e0ac3277376700b6026ef9e9e3f380df50",
-    "rimraf": "github:rictic/DefinitelyTyped/rimraf/rimraf.d.ts#fc341765ebbb04b7109981a25dced01f488f4d94",
-    "js-yaml": "github:rictic/DefinitelyTyped/js-yaml/js-yaml.d.ts#fc341765ebbb04b7109981a25dced01f488f4d94",
-    "marked": "github:rictic/DefinitelyTyped/marked/marked.d.ts#e5a27ea95e47b95333784f1f0d590127b4e39a89"
+    "rimraf": "github:rictic/DefinitelyTyped/rimraf/rimraf.d.ts#fc341765ebbb04b7109981a25dced01f488f4d94"
   }
 }

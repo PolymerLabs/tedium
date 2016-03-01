@@ -22,6 +22,7 @@
         "cleanup-passes/bower.ts",
         "cleanup-passes/contribution-guide.ts",
         "cleanup-passes/issue-template.ts",
+        "cleanup-passes/license-header.ts",
         "cleanup-passes/package-json.ts",
         "cleanup-passes/readme.ts",
         "cleanup-passes/register-all.ts",
