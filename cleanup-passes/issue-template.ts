@@ -67,21 +67,15 @@ async function addIssueTemplate(element: ElementRepo): Promise<void> {
     fs.mkdirSync(templateFolderPath);
   }
   const templatePath = path.join(element.dir, repoTemplatePath);
-  let templateContent = '';
-  let templateExisted = false;
-  if (existsSync(templatePath)) {
-    templateContent = fs.readFileSync(templatePath, 'utf8');
-    templateExisted = true;
-    if (templateContent === issueTemplate) {
-      return;
+  const templateExisted = existsSync(templatePath);
+  if (templateExisted) {
+    if (fs.readFileSync(templatePath, 'utf8') === issueTemplate) {
+      return;  // No changes to make.
     }
-  } else {
-    templateContent = issueTemplate;
   }
 
-  fs.writeFileSync(templatePath, templateContent, 'utf8');
+  fs.writeFileSync(templatePath, issueTemplate, 'utf8');
   const message = `[ci skip] ${templateExisted ? 'Update' : 'Add'} Issue Template`;
-  console.log(templatePath);
   await makeCommit(element, [repoTemplatePath], message);
 }
 
