@@ -7,7 +7,7 @@ A helpful bot for doing mass changes to Polymer team's github repos.
 ### Node v5:
 
 Tedium is written in Typescript and compiled to ES2015, so you want the
-latest version of node:
+latest version of node. The easiest way to do this is with [nvm](https://github.com/creationix/nvm):
 
 ```
 nvm install v5
