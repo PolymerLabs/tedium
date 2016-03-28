@@ -11,14 +11,18 @@
         "suppressImplicitAnyIndexErrors": true
     },
     "filesGlob": [
-        "**/*.ts",
-        "**/*.tsx",
+        "*.ts",
+        "cleanup-passes/*.ts",
         "!node_modules/**",
         "typings/main.d.ts",
         "custom_typings/*.d.ts"
     ],
     "files": [
         "cleanup-pass.ts",
+        "cleanup.ts",
+        "element-repo.ts",
+        "markdown-lang-autodetect.ts",
+        "tedium.ts",
         "cleanup-passes/bower.ts",
         "cleanup-passes/contribution-guide.ts",
         "cleanup-passes/issue-template.ts",
@@ -29,7 +33,7 @@
         "cleanup-passes/tests.ts",
         "cleanup-passes/travis.ts",
         "cleanup-passes/util.ts",
-        "cleanup.ts",
+        "typings/main.d.ts",
         "custom_typings/command-line-args.d.ts",
         "custom_typings/dom5.d.ts",
         "custom_typings/escodegen.d.ts",
@@ -43,11 +47,7 @@
         "custom_typings/nodegit.d.ts",
         "custom_typings/pad.d.ts",
         "custom_typings/promisify-node.d.ts",
-        "custom_typings/strip-json-comments.d.ts",
-        "element-repo.ts",
-        "markdown-lang-autodetect.ts",
-        "tedium.ts",
-        "typings/main.d.ts"
+        "custom_typings/strip-json-comments.d.ts"
     ],
     "atom": {
         "rewriteTsconfig": true
