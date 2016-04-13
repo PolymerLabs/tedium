@@ -34,8 +34,10 @@ interface TravisConfig {
       sources?: string[]
     }
   };
+  dist?: string,
+  sudo?: 'false' | 'required',
   env?: TravisEnv;
-  node_js?: string;
+  node_js?: string | number;
 }
 
 async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
@@ -49,13 +51,13 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   let travis: TravisConfig = yaml.safeLoad(travisConfigBlob);
 
-  const tools: string[] = [
+  const tools = [
     'bower',
     'polylint',
     'web-component-tester'
   ];
 
-  const beforeScript: string[] = [
+  const beforeScript = [
     `npm install -g ${tools.join(" ")}`,
     'bower install',
     'polylint'
@@ -68,15 +70,15 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
       (acc, s, idx) => { return acc && (beforeScript[idx] === s) }, true);
     if (!beforeScriptEqual) {
       travis.before_script = beforeScript;
-      element.needsReview = true;
     }
   }
 
-  // use stable node (v5+)
+  // use ubuntu trusty
+  travis.dist = 'trusty';
+  travis.sudo = 'required';
 
-  if (travis.node_js !== 'stable') {
-    travis.node_js = 'stable';
-  }
+  // use stable node (v5+)
+  travis.node_js = 'stable';
 
   // travis addons
 
@@ -85,36 +87,19 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   }
   const ta = travis.addons;
 
-  //use latest firefox
-
+  // use latest firefox, unless specified
   if (!ta.firefox) {
     ta.firefox = 'latest';
   }
 
   // use sauce addon to speed up tunnel creation
-  if (!ta.sauce_connect) {
-    ta.sauce_connect = true;
-  }
-
-  // update node >= 4 dependencies
-  // https://docs.travis-ci.com/user/languages/javascript-with-nodejs#Node.js-v4-(or-io.js-v3)-compiler-requirements
-
-  const C11Source = 'ubuntu-toolchain-r-test';
-  const C11Package = 'g++-4.8';
-  const C11Env = 'CXX=g++-4.8';
+  ta.sauce_connect = true;
 
   if (!ta.apt) {
     ta.apt = {
       sources: [],
       packages: []
     }
-  }
-
-  if (ta.apt.sources.indexOf(C11Source) === -1) {
-    ta.apt.sources.push(C11Source);
-  }
-  if (ta.apt.packages.indexOf(C11Package) === -1) {
-    ta.apt.packages.push(C11Package);
   }
 
   // use stable chrome
@@ -135,27 +120,32 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
     te = {global: <string[]>te};
   }
 
-  if (te.global.indexOf(C11Env) === -1) {
-    te.global.push(C11Env);
-  }
+  // C11 dependencies for node >= 4
+  // unneeded for trusty
+  // https://docs.travis-ci.com/user/languages/javascript-with-nodejs#Node.js-v4-(or-io.js-v3)-compiler-requirements
+  const C11Source = 'ubuntu-toolchain-r-test';
+  const C11Package = 'g++-4.8';
+  const C11Env = 'CXX=g++-4.8';
+
+  // remove C11 config (not needed in trusty dist)
+  ta.apt.sources = ta.apt.sources.filter(s => s !== C11Source);
+  ta.apt.packages = ta.apt.packages.filter(p => p !== C11Package);
+  te.global = te.global.filter(e => e !== C11Env);
 
   travis.env = te;
 
   const updatedTravisConfigBlob = yaml.safeDump(travis);
 
   if (travisConfigBlob !== updatedTravisConfigBlob) {
+    // changes to travis should always need review
+    element.needsReview = true;
     fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, 'utf8');
-    // if this commit needs review, run the tests
-    // otherwise this is probably an innocuous run
-    const commitMessage =
-        `${!element.needsReview ? '[ci skip] ' : ''}Update travis config`;
-    await makeCommit(element, ['.travis.yml'], commitMessage);
+    await makeCommit(element, ['.travis.yml'], 'Update travis config');
   }
 }
 
 register({
   name: 'travis',
   pass: cleanupTravisConfig,
-  // Disabled until we've merged all of the polylint changes.
-  runsByDefault: false,
+  runsByDefault: true,
 });
