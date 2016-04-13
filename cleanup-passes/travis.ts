@@ -35,9 +35,9 @@ interface TravisConfig {
     }
   };
   dist?: string,
-  sudo?: string,
+  sudo?: 'false' | 'required',
   env?: TravisEnv;
-  node_js?: string;
+  node_js?: string | number;
 }
 
 async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
