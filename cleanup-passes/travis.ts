@@ -74,18 +74,11 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   }
 
   // use ubuntu trusty
-  if (travis.dist !== 'trusty') {
-    travis.dist = 'trusty';
-  }
-  if (travis.sudo !== 'required') {
-    travis.sudo = 'required';
-  }
+  travis.dist = 'trusty';
+  travis.sudo = 'required';
 
   // use stable node (v5+)
-
-  if (travis.node_js !== 'stable') {
-    travis.node_js = 'stable';
-  }
+  travis.node_js = 'stable';
 
   // travis addons
 
@@ -94,16 +87,13 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   }
   const ta = travis.addons;
 
-  //use latest firefox
-
+  // use latest firefox, unless specified
   if (!ta.firefox) {
     ta.firefox = 'latest';
   }
 
   // use sauce addon to speed up tunnel creation
-  if (!ta.sauce_connect) {
-    ta.sauce_connect = true;
-  }
+  ta.sauce_connect = true;
 
   if (!ta.apt) {
     ta.apt = {
