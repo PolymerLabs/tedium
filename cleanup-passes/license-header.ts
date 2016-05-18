@@ -98,7 +98,12 @@ async function addLicenseHeader(element: ElementRepo): Promise<void> {
     const isHTML = path.extname(filename) === '.html';
     const startToken = isHTML ? /<!--/ : /\/[*]{1,2}/;
     const endToken = isHTML ? /-->/ : /\*\//;
-    let content = fs.readFileSync(realFilePath, 'utf-8');
+    let content: string;
+    try {
+      content = fs.readFileSync(realFilePath, 'utf-8');
+    } catch(e) {
+      continue; // skip failure to read symlink into bower_components dir
+    }
     const lines = content.split(EOL);
     const commentLoc = findFirstComment(lines, startToken, endToken);
     const start = commentLoc.start;

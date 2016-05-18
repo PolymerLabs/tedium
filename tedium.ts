@@ -157,20 +157,18 @@ async function getRepos(): Promise<GitHub.Repo[]> {
   const progressBar = standardProgressBar(
       'Discovering repos in PolymerElements...', progressLength);
 
+  const repos: GitHub.Repo[] = [];
+
   // First get the Polymer repo, then get all of the PolymerElements repos.
-  const repo: GitHub.Repo =
-      await promisify(github.repos.get)({user: 'Polymer', repo: 'polymer'});
-  progressBar.tick();
-  const repos = [repo];
+  const repoPromises = [promisify(github.repos.get)({user: 'Polymer', repo: 'polymer'})];
+
   if (opts.repo.length) {
     // cleanup passes wants ContributionGuide around
-    repos.push(
-        await promisify(github.repos.get)(
+    repoPromises.push(
+        promisify(github.repos.get)(
             {user: 'PolymerElements', repo: 'ContributionGuide'}));
-    progressBar.tick();
     for (let repo of opts.repo) {
-      repos.push(await promisify(github.repos.get)(repo));
-      progressBar.tick();
+      repoPromises.push(promisify(github.repos.get)(repo));
     }
   } else {
     let page = 0;
@@ -189,6 +187,8 @@ async function getRepos(): Promise<GitHub.Repo[]> {
     progressBar.tick();
   }
 
+  repos.push(...await Promise.all(repoPromises))
+  progressBar.tick();
   // github pagination is... not entirely consistent, and
   // sometimes gives us duplicate repos.
   const repoIds = new Set<string>();
@@ -386,11 +386,36 @@ function connectToGithub() {
  * Returns a promise of the hydrolysis.Analyzer with all of the info loaded.
  */
 async function analyzeRepos() {
-  const dirs = fs.readdirSync('repos/');
+  const dirsToConsider: string[] = [];
   const htmlFiles: string[] = [];
 
-  for (const dir of dirs) {
+  for (const dir of fs.readdirSync('repos/')) {
+    dirsToConsider.push(path.join('repos', dir));
     for (const fn of fs.readdirSync(path.join('repos', dir))) {
+      try {
+        const stat = await promisify(fs.stat)(path.join('repos', dir, fn));
+        if (!stat.isDirectory()) {
+          continue;
+        }
+      } catch(e) {
+        continue;
+      }
+      if (fn.startsWith('.')) {
+        continue;
+      }
+      const dirnamesToIgnore = new Set([
+        'test', 'util', 'explainer', 'src', 'helpers', 'site', 'templates',
+        'viewer', 'demo', 'patterns'
+      ]);
+      if (dirnamesToIgnore.has(path.basename(fn))) {
+        continue;
+      }
+      dirsToConsider.push(path.join('repos', dir, fn));
+    }
+  }
+
+  for (const dir of dirsToConsider) {
+    for (const fn of fs.readdirSync(dir)) {
       if (/index\.html|dependencies\.html/.test(fn) || !fn.endsWith('.html')) {
         continue;
       }
@@ -400,7 +425,7 @@ async function analyzeRepos() {
       if (!/\bdemo\b/.test(dir) && /demo/.test(fn)) {
         continue;
       }
-      htmlFiles.push(path.join('repos', dir, fn));
+      htmlFiles.push(path.join(dir, fn));
     }
   }
 

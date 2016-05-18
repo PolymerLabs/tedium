@@ -31,13 +31,19 @@ async function generateReadme(element: ElementRepo): Promise<void> {
   const elementsByTagName = {};
   const behaviorsByName = {};
   for (const analyzedElement of element.analyzer.elements) {
-    if (path.dirname(analyzedElement.contentHref) === element.dir) {
+    if (!analyzedElement.contentHref) {
+      continue;
+    }
+    if (analyzedElement.contentHref.startsWith(element.dir + '/')) {
       implementationFiles.add(path.basename(analyzedElement.contentHref));
       elementsByTagName[analyzedElement.is] = analyzedElement;
     }
   }
   for (const behavior of element.analyzer.behaviors) {
-    if (path.dirname(behavior.contentHref) === element.dir) {
+    if (!behavior.contentHref) {
+      continue;
+    }
+    if (behavior.contentHref.startsWith(element.dir + '/')) {
       implementationFiles.add(path.basename(behavior.contentHref));
       behaviorsByName[behavior.is] = behavior;
     }
