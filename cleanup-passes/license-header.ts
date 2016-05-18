@@ -102,7 +102,13 @@ async function addLicenseHeader(element: ElementRepo): Promise<void> {
     try {
       content = fs.readFileSync(realFilePath, 'utf-8');
     } catch(e) {
-      continue; // skip failure to read symlink into bower_components dir
+      // app-pouchdb ships a symlink into bower_components that doesn't
+      // resolve unless you've done a bower install. In any case, we don't
+      // need to add a license to the file in the app-pouchdb repo.
+      if (filename === 'sw-import.js' && element.ghRepo.name === 'app-pouchdb') {
+        continue;
+      }
+      throw e;
     }
     const lines = content.split(EOL);
     const commentLoc = findFirstComment(lines, startToken, endToken);
