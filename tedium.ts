@@ -148,8 +148,8 @@ const progressBarWidth = 45;
  */
 async function getRepos(): Promise<GitHub.Repo[]> {
   const per_page = 100;
-  const getFromOrg: (o: Object) => Promise<GitHub.Repo[]> =
-      promisify(github.repos.getFromOrg);
+  const getFromOrg = promisify(github.repos.getFromOrg);
+  const getRepo = promisify(github.repos.get);
   let progressLength = 2;
   if (opts.repo.length) {
     progressLength += opts.repo.length
@@ -157,20 +157,19 @@ async function getRepos(): Promise<GitHub.Repo[]> {
   const progressBar = standardProgressBar(
       'Discovering repos in PolymerElements...', progressLength);
 
-  // First get the Polymer repo, then get all of the PolymerElements repos.
-  const repo: GitHub.Repo =
-      await promisify(github.repos.get)({user: 'Polymer', repo: 'polymer'});
-  progressBar.tick();
-  const repos = [repo];
+  const repos: GitHub.Repo[] = [];
+
+  // First get the repos outside PolymerElements, and those that are always
+  // needed.
+  const repoPromises = [
+      getRepo({user: 'Polymer', repo: 'polymer'}),
+      getRepo({user: 'PolymerLabs', repo: 'promise-polyfill'}),
+      getRepo({user: 'PolymerElements', repo: 'ContributionGuide'})
+  ];
+
   if (opts.repo.length) {
-    // cleanup passes wants ContributionGuide around
-    repos.push(
-        await promisify(github.repos.get)(
-            {user: 'PolymerElements', repo: 'ContributionGuide'}));
-    progressBar.tick();
     for (let repo of opts.repo) {
-      repos.push(await promisify(github.repos.get)(repo));
-      progressBar.tick();
+      repoPromises.push(getRepo(repo));
     }
   } else {
     let page = 0;
@@ -183,12 +182,12 @@ async function getRepos(): Promise<GitHub.Repo[]> {
         break;
       }
     }
-    repos.push(
-        await promisify(github.repos.get)(
-            {user: 'PolymerLabs', repo: 'promise-polyfill'}));
+
     progressBar.tick();
   }
 
+  repos.push(...await Promise.all(repoPromises))
+  progressBar.tick();
   // github pagination is... not entirely consistent, and
   // sometimes gives us duplicate repos.
   const repoIds = new Set<string>();
@@ -386,21 +385,46 @@ function connectToGithub() {
  * Returns a promise of the hydrolysis.Analyzer with all of the info loaded.
  */
 async function analyzeRepos() {
-  const dirs = fs.readdirSync('repos/');
+  const dirsToConsider: string[] = [];
   const htmlFiles: string[] = [];
 
-  for (const dir of dirs) {
-    for (const fn of fs.readdirSync(path.join('repos', dir))) {
-      if (/index\.html|dependencies\.html/.test(fn) || !fn.endsWith('.html')) {
+  for (const dir of fs.readdirSync('repos/')) {
+    dirsToConsider.push(path.join('repos', dir));
+    for (const filename of fs.readdirSync(path.join('repos', dir))) {
+      try {
+        const stat = fs.statSync(path.join('repos', dir, filename));
+        if (!stat.isDirectory()) {
+          continue;
+        }
+      } catch(e) {
+        continue;
+      }
+      if (filename.startsWith('.')) {
+        continue;
+      }
+      const dirnamesToIgnore = new Set([
+        'test', 'util', 'explainer', 'src', 'helpers', 'site', 'templates',
+        'viewer', 'demo', 'patterns'
+      ]);
+      if (dirnamesToIgnore.has(path.basename(filename))) {
+        continue;
+      }
+      dirsToConsider.push(path.join('repos', dir, filename));
+    }
+  }
+
+  for (const dir of dirsToConsider) {
+    for (const filename of fs.readdirSync(dir)) {
+      if (/index\.html|dependencies\.html/.test(filename) || !filename.endsWith('.html')) {
         continue;
       }
       // We want to ignore files with 'demo' in them, unless the element's
       // directory has the word 'demo' in it, in which case that's
       // the whole point of the element.
-      if (!/\bdemo\b/.test(dir) && /demo/.test(fn)) {
+      if (!/\bdemo\b/.test(dir) && /demo/.test(filename)) {
         continue;
       }
-      htmlFiles.push(path.join('repos', dir, fn));
+      htmlFiles.push(path.join(dir, filename));
     }
   }
 

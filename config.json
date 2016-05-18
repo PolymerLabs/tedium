@@ -11,6 +11,7 @@
         "repos/neon-elements",
         "repos/gold-elements",
         "repos/platinum-elements",
+        "repos/carbon-elements",
         "repos/app-elements",
         "repos/seed-element",
         "repos/app-layout-templates",
@@ -34,6 +35,18 @@
     "travis": {
       "blacklist": [
         "repos/polymer-starter-kit"
+      ]
+    },
+    "issue-template": {
+      "blacklist": [
+        "repos/molecules",
+        "repos/iron-elements",
+        "repos/paper-elements",
+        "repos/neon-elements",
+        "repos/gold-elements",
+        "repos/platinum-elements",
+        "repos/carbon-elements",
+        "repos/app-elements"
       ]
     }
   }

@@ -98,7 +98,18 @@ async function addLicenseHeader(element: ElementRepo): Promise<void> {
     const isHTML = path.extname(filename) === '.html';
     const startToken = isHTML ? /<!--/ : /\/[*]{1,2}/;
     const endToken = isHTML ? /-->/ : /\*\//;
-    let content = fs.readFileSync(realFilePath, 'utf-8');
+    let content: string;
+    try {
+      content = fs.readFileSync(realFilePath, 'utf-8');
+    } catch(e) {
+      // app-pouchdb ships a symlink into bower_components that doesn't
+      // resolve unless you've done a bower install. In any case, we don't
+      // need to add a license to the file in the app-pouchdb repo.
+      if (filename === 'sw-import.js' && element.ghRepo.name === 'app-pouchdb') {
+        continue;
+      }
+      throw e;
+    }
     const lines = content.split(EOL);
     const commentLoc = findFirstComment(lines, startToken, endToken);
     const start = commentLoc.start;
