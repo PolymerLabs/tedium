@@ -21,38 +21,19 @@ import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo.ts';
 import {existsSync, makeCommit} from './util';
 import {injectAutodetectedLanguage} from '../markdown-lang-autodetect';
+import {Element, Behavior} from 'hydrolysis';
 
 /**
  * Generates README.md for the element, unless it's in the blacklist.
  */
 async function generateReadme(element: ElementRepo): Promise<void> {
-  const implementationFiles = new Set();
+  const docInfo = extractDocumentationInfo(element);
 
-  const elementsByTagName = {};
-  const behaviorsByName = {};
-  for (const analyzedElement of element.analyzer.elements) {
-    if (!analyzedElement.contentHref) {
-      continue;
-    }
-    if (analyzedElement.contentHref.startsWith(element.dir + '/')) {
-      implementationFiles.add(path.basename(analyzedElement.contentHref));
-      elementsByTagName[analyzedElement.is] = analyzedElement;
-    }
-  }
-  for (const behavior of element.analyzer.behaviors) {
-    if (!behavior.contentHref) {
-      continue;
-    }
-    if (behavior.contentHref.startsWith(element.dir + '/')) {
-      implementationFiles.add(path.basename(behavior.contentHref));
-      behaviorsByName[behavior.is] = behavior;
-    }
-  }
   let readmeContents = `
 <!---
 
 This README is automatically generated from the comments in these files:
-${Array.from(implementationFiles).sort().join('  ')}
+${Array.from(docInfo.implementationFiles).sort().join('  ')}
 
 Edit those files, and our readme bot will duplicate them over here!
 Edit this file, and the bot will squash your changes :)
@@ -77,60 +58,33 @@ thing! https://github.com/PolymerLabs/tedium/issues
         '\n\n';
   }
 
-  const tagNames = Object.keys(elementsByTagName);
-  // Sort elements alphabetically, except that the element that the
-  // repository is named after should come first.
-  tagNames.sort((l, r) => {
-    if (l === element.ghRepo.name) {
-      return -1;
-    }
-    if (r === element.ghRepo.name) {
-      return 1;
-    }
-    return l.localeCompare(r);
-  });
+  const nameToContent = new Map<string, string>();
 
-  for (const tagName of tagNames) {
-    const analyzedElement = elementsByTagName[tagName];
-
-    if (!analyzedElement.desc || analyzedElement.desc.trim() === '') {
-      readmeContents += `\n<!-- No docs for <${tagName}> found. -->\n`;
-      continue;
-    }
-
-    readmeContents += `
-##&lt;${tagName}&gt;
-
-${injectAutodetectedLanguage(analyzedElement.desc)}
-`;
-  }
   // If this repo is named after a behavior, what would that behavior be named?
   // This turns e.g. iron-a11y-keys-behavior into
   // Polymer.IronA11yKeysBehavior
-  const canonicalBehaviorName =
+  let canonicalBehaviorName =
       'Polymer.' + wordsWithDashesToCamelCase(element.ghRepo.name);
-  const behaviorNames = Object.keys(behaviorsByName).sort((l, r) => {
-    if (l === canonicalBehaviorName) {
-      return -1;
-    }
-    if (r === canonicalBehaviorName) {
-      return 1;
-    }
-    return l.localeCompare(r);
-  });
-  for (const name of behaviorNames) {
-    const behavior = behaviorsByName[name];
+  if (!canonicalBehaviorName.endsWith('Behavior')) {
+    canonicalBehaviorName += 'Behavior';
+  }
 
-    if (!behavior.desc || behavior.desc.trim() === '') {
-      readmeContents += `\n<!-- No docs for ${name} found. -->\n`;
-      continue;
-    }
+  if (docInfo.nameToContent.has(element.ghRepo.name)) {
+    // If there's an element with the same name as the repo, that comes first.
+    readmeContents += docInfo.nameToContent.get(element.ghRepo.name);
+    docInfo.nameToContent.delete(element.ghRepo.name);
+  } else if (docInfo.nameToContent.has(canonicalBehaviorName)) {
+    // Otherwise, if there's a behavior named the same as the repo, that comes
+    // first.
+    readmeContents += docInfo.nameToContent.get(canonicalBehaviorName);
+    docInfo.nameToContent.delete(canonicalBehaviorName);
+  }
 
-    readmeContents += `
-##${name}
-
-${injectAutodetectedLanguage(behavior.desc)}
-`;
+  // For the rest, it's the elements then the behaviors in sorted order.
+  const names = [...docInfo.tagNames].sort().concat(
+      [...docInfo.behaviorNames].sort())
+  for (const name of names) {
+    readmeContents += docInfo.nameToContent.get(name) || '';
   }
 
   const readmePath = path.join(element.dir, 'README.md');
@@ -142,6 +96,72 @@ ${injectAutodetectedLanguage(behavior.desc)}
     fs.writeFileSync(readmePath, readmeContents, 'utf8');
     await makeCommit(
         element, ['README.md'], '[skip ci] Autogenerate README file.');
+  }
+}
+
+function extractDocumentationInfo(element: ElementRepo) {
+  const implementationFiles = new Set<string>();
+
+  const elementsByTagName = new Map<string, Element>();
+  const behaviorsByName = new Map<string, Behavior>();
+  for (const analyzedElement of element.analyzer.elements) {
+    if (!analyzedElement.contentHref) {
+      continue;
+    }
+    if (analyzedElement.contentHref.startsWith(element.dir + '/')) {
+      implementationFiles.add(path.basename(analyzedElement.contentHref));
+      elementsByTagName.set(analyzedElement.is, analyzedElement);
+    }
+  }
+  for (const behavior of element.analyzer.behaviors) {
+    if (!behavior.contentHref) {
+      continue;
+    }
+    if (behavior.contentHref.startsWith(element.dir + '/')) {
+      implementationFiles.add(path.basename(behavior.contentHref));
+      behaviorsByName.set(behavior.is, behavior);
+    }
+  }
+
+  const nameToContent = new Map<string, string>();
+  for (const pair of behaviorsByName) {
+    const name = pair[0];
+    const behavior = pair[1];
+    if (!behavior.desc || behavior.desc.trim() === '') {
+      nameToContent.set(name, `\n<!-- No docs for ${name} found. -->\n`)
+      continue;
+    }
+
+    nameToContent.set(name, `
+##${name}
+
+${injectAutodetectedLanguage(behavior.desc)}
+`
+    );
+  }
+
+  for (const pair of elementsByTagName) {
+    const tagName = pair[0];
+    const analyzedElement = pair[1];
+
+    if (!analyzedElement.desc || analyzedElement.desc.trim() === '') {
+      nameToContent.set(tagName, `\n<!-- No docs for <${tagName}> found. -->\n`);
+      continue;
+    }
+
+    nameToContent.set(tagName, `
+##&lt;${tagName}&gt;
+
+${injectAutodetectedLanguage(analyzedElement.desc)}
+`
+    );
+  }
+
+  return {
+    implementationFiles,
+    behaviorNames: new Set(behaviorsByName.keys()),
+    tagNames: new Set(elementsByTagName.keys()),
+    nameToContent,
   }
 }
 
