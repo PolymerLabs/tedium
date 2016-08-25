@@ -29,6 +29,7 @@
 
 'use strict';
 
+/// <reference path="./custom_typings/main.d.ts" />
 import * as cliArgs from 'command-line-args';
 import * as fs from 'fs';
 import * as GitHub from 'github';

@@ -1,4 +1,6 @@
 declare module 'github' {
+  interface NodeCallback<T> { (err: any, res: T): any; }
+
   interface Options {
     version: string;
     protocol: string;
