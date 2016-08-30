@@ -32,7 +32,7 @@ import {AllHtmlEntities as entities} from 'html-entities';
  */
 class MarkdownMarkdownRenderer {
 
-  code(code:string, lang:string, escaped:boolean) {
+  code(code:string, lang:string, escaped?:boolean) {
     if (escaped) {
       code = entities.decode(code);
     }
