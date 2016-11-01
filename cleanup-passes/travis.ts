@@ -87,7 +87,7 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   }
   const ta = travis.addons;
 
-  // use latest firefox, unless specified
+  // use latest firefox
   ta.firefox = 'latest';
 
   // do not use sauce connect addon, let wct do it
