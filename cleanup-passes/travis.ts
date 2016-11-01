@@ -77,8 +77,8 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   travis.dist = 'trusty';
   travis.sudo = 'required';
 
-  // use stable node (v5+)
-  travis.node_js = 'stable';
+  // use boron lts node (v6)
+  travis.node_js = '6';
 
   // travis addons
 
@@ -88,12 +88,12 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   const ta = travis.addons;
 
   // use latest firefox, unless specified
-  if (!ta.firefox) {
-    ta.firefox = 'latest';
-  }
+  ta.firefox = 'latest';
 
-  // use sauce addon to speed up tunnel creation
-  ta.sauce_connect = true;
+  // do not use sauce connect addon, let wct do it
+  if (ta.sauce_connect !== undefined) {
+    delete ta.sauce_connect;
+  }
 
   if (!ta.apt) {
     ta.apt = {

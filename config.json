@@ -69,7 +69,8 @@
     },
     "travis": {
       "blacklist": [
-        "repos/polymer-starter-kit"
+        "repos/polymer-starter-kit",
+        "repos/paper-checkbox"
       ]
     },
     "issue-template": {
