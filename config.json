@@ -69,6 +69,8 @@
     },
     "travis": {
       "blacklist": [
+        // Temporary: example element for eslint integration,
+        // and travis step removes the eslint settings
         "repos/polymer-starter-kit",
         "repos/paper-checkbox"
       ]
