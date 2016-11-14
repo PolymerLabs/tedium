@@ -18,7 +18,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import {register} from '../cleanup-pass';
-import {ElementRepo} from '../element-repo.ts';
+import {ElementRepo} from '../element-repo';
 import {existsSync, makeCommit} from './util';
 import {injectAutodetectedLanguage} from '../markdown-lang-autodetect';
 import {Element, Behavior} from 'hydrolysis';
