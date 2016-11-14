@@ -22,7 +22,7 @@ import * as promisify from 'promisify-node';
 import * as glob from 'glob';
 
 import {register} from '../cleanup-pass';
-import {ElementRepo} from '../element-repo.ts';
+import {ElementRepo} from '../element-repo';
 import {existsSync, makeCommit} from './util';
 
 const polymerHeader =
