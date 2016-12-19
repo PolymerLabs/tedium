@@ -6,6 +6,7 @@
 /// <reference path="./highlight.js.d.ts" />
 /// <reference path="./html-entities.d.ts" />
 /// <reference path="./hydrolysis.d.ts" />
+/// <reference path="./js-yaml.d.ts" />
 /// <reference path="./nodegit.d.ts" />
 /// <reference path="./pad.d.ts" />
 /// <reference path="./promisify-node.d.ts" />

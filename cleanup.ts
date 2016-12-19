@@ -42,6 +42,6 @@ export async function cleanup(
         stepConfig.blacklist.indexOf(element.dir) !== -1) {
       continue;
     }
-    await step.pass(element);
+    await step.pass(element).catch(console.log);
   }
 }

@@ -256,9 +256,16 @@ let rateLimit = (function() {
  */
 async function checkoutNewBranch(
     repo: nodegit.Repository, branchName: string): Promise<void> {
-  const commit = await repo.getHeadCommit();
-  const branch =
-      await nodegit.Branch.create(repo, branchName, commit, false);
+
+  try {
+    const previewBranchReference = await repo.getBranch('refs/remotes/origin/2.0-preview');
+    await repo.checkoutRef(previewBranchReference);
+  } catch (err) {
+    console.log(err);
+  }
+
+  const startCommit = await repo.getHeadCommit();
+  const branch = await nodegit.Branch.create(repo, branchName, startCommit, false);
   return repo.checkoutBranch(branch);
 }
 
@@ -306,7 +313,7 @@ async function pushChanges(
   try {
     await pushBranch(element, localBranchName, remoteBranchName);
     if (element.needsReview) {
-      await createPullRequest(element, localBranchName, 'master', assignee);
+      await createPullRequest(element, localBranchName, 'master', 'notwaldorf');
     }
   } catch (e) {
     element.pushStatus = PushStatus.failed;
@@ -327,7 +334,7 @@ async function pushBranch(
 
   return remote.push(
      [
-       "refs/heads/" + localBranchName + ":refs/heads/" +
+       "+refs/heads/" + localBranchName + ":refs/heads/" +
        remoteBranchName
      ],
      {
@@ -351,7 +358,10 @@ async function createPullRequest(
   const repo = element.ghRepo.name;
   await rateLimit(5000);
   const pr = await promisify(github.pullRequests.create)({
-    title: 'Automatic cleanup!',
+    title: '2.0-preview updates to travis.yaml, bower.json, and more',
+    body: `Tedium ran a task and decided that your 2.0-preview branch needed
+these changes for 2.0 install & testing to work. Please give them a look over
+to make sure nothing broke and any new variants look good.\n\n`,
     user,
     repo,
     head,
@@ -497,6 +507,9 @@ async function _main(elements: ElementRepo[]) {
 
   // Clone git repos.
   for (const ghRepo of ghRepos) {
+
+    if (ghRepo.private) continue;
+
     promises.push(Promise.resolve().then(() => {
       const dir = path.join('repos', ghRepo.name);
       let repoPromise: Promise<nodegit.Repository>;
@@ -524,6 +537,7 @@ async function _main(elements: ElementRepo[]) {
   // (if that's what the user wants)
   const cleanupPromises: Promise<any>[] = [];
   const excludes = new Set([
+    'repos/data-elements',
     'repos/style-guide',
     'repos/test-all',
     'repos/ContributionGuide',
@@ -531,7 +545,7 @@ async function _main(elements: ElementRepo[]) {
     'repos/polymer',
   ]);
 
-  const branchName = 'auto-cleanup';
+  const branchName = '_auto_generated_v2_preview';
   const cleanupProgress =
       standardProgressBar('Applying transforms...', elements.length);
   for (const element of elements) {
@@ -550,8 +564,9 @@ async function _main(elements: ElementRepo[]) {
       await cleanup(element, config.passes || {}, passesToRun);
       await pushChanges(element, branchName, user.login);
     } catch (err) {
-      throw new Error(
-          `Error updating ${element.dir}:\n${err.stack || err}`);
+      console.log(err);
+      // throw new Error(
+          // `Error updating ${element.dir}:\n${err.stack || err}`);
     }
     cleanupProgress.tick();
   }

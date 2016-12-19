@@ -52,6 +52,7 @@ declare module 'github' {
       owner: User;
       name: string;
       clone_url: string;
+      private: boolean;
     }
     interface User {
       login: string;

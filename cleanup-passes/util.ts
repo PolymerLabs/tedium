@@ -38,7 +38,7 @@ export async function makeCommit(
     element: ElementRepo, files: string[],
     commitMessage: string): Promise<void> {
   const getSignature = () => nodegit.Signature.now(
-      'Polymer Format Bot', 'format-bot@polymer-project.org');
+      'Tedium Bot', 'format-bot@polymer-project.org');
 
   element.dirty = true;
   await element.repo.createCommitOnHead(

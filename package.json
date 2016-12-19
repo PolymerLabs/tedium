@@ -53,6 +53,7 @@
   "devDependencies": {
     "tslint": "^3.15.1",
     "typescript": "^2.0.0",
-    "watch": "^0.17.1"
+    "watch": "^0.17.1",
+    "web-component-tester": "^5.0.0"
   }
 }
