@@ -31,8 +31,7 @@ import {AllHtmlEntities as entities} from 'html-entities';
  * possible.
  */
 class MarkdownMarkdownRenderer {
-
-  code(code:string, lang:string, escaped?:boolean) {
+  code(code: string, lang: string, escaped?: boolean) {
     if (escaped) {
       code = entities.decode(code);
     }
@@ -45,17 +44,17 @@ class MarkdownMarkdownRenderer {
     return `\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
   }
 
-  blockquote(quote:string) {
+  blockquote(quote: string) {
     return `> ${quote}`;
   }
 
-  html(html:string) {
+  html(html: string) {
     return html;
   }
 
-  heading(text: string, level: number, raw:string) {
-    var prefix = '';
-    for (var i = 0; i < level; i++) {
+  heading(_text: string, level: number, raw: string) {
+    let prefix = '';
+    for (let i = 0; i < level; i++) {
       prefix += '#';
     }
     return `${prefix} ${raw}\n\n`;
@@ -65,7 +64,7 @@ class MarkdownMarkdownRenderer {
     return '---\n\n';
   }
 
-  list(body:string, ordered:boolean) {
+  list(body: string, ordered: boolean) {
     if (ordered) {
       body = body.replace(/(^|\n)\*/g, '$11.');
     }
@@ -76,43 +75,45 @@ class MarkdownMarkdownRenderer {
     return `${body}\n`;
   }
 
-  listitem(text:string) {
+  listitem(text: string) {
     return `* ${text}\n`;
   }
 
-  paragraph(text:string) {
+  paragraph(text: string) {
     return `${text}\n\n`;
   }
 
-  table(header:string, body:string) {
+  table(header: string, body: string) {
     return `${header}\n${body}\n`;
   }
 
-  tablerow(content:string) {
+  tablerow(content: string) {
     const isHeader = /😿TH😿/.test(content);
     content = content.replace(/😿TH😿/g, '');
     const columns = content.slice(0, -1).split('|');
     const result = `| ${columns.join(' | ')} |\n`;
     if (isHeader) {
-      const headerSeparator = `|${' --- |'.repeat(columns.length)}`;
+      const headerSeparator = `|${
+                              ' --- |'.repeat(columns.length)}`;
       return result + headerSeparator;
     }
     return result;
   }
 
-  tablecell(content:string, flags:{header: boolean, align: string}) {
-    return `${flags.header ? '😿TH😿' : ''}${content}|`;
+  tablecell(content: string, flags: {header: boolean, align: string}) {
+    return `${flags.header ? '😿TH😿' : ''
+                                      }${content}|`;
   }
 
-  strong(text:string) {
+  strong(text: string) {
     return `__${text}__`;
   }
 
-  em(text:string) {
+  em(text: string) {
     return `*${text}*`;
   }
 
-  codespan(text:string) {
+  codespan(text: string) {
     return `\`${entities.decode(text)}\``;
   }
 
@@ -120,11 +121,11 @@ class MarkdownMarkdownRenderer {
     return '\n';
   }
 
-  del(text:string) {
+  del(text: string) {
     return `--${text}--`;
   }
 
-  link(href:string, title:string, text:string) {
+  link(href: string, title: string, text: string) {
     if (title) {
       title = ` "${title.replace('"', '\\"')}"`;
     } else {
@@ -133,25 +134,23 @@ class MarkdownMarkdownRenderer {
     return `[${text}](${href}${title})`;
   }
 
-  image(href:string, title:string, text:string) {
+  image(href: string, title: string, text: string) {
     return `!${this.link(href, title, text)}`;
   }
 
-  text(text:string) {
+  text(text: string) {
     return entities.decode(text);
   }
-
 }
 
-function inferLanguage(code:string):string {
+function inferLanguage(code: string): string {
   if (/<script>/.test(code)) {
     return 'html';
   }
   if (/Polymer\(\s*\{/.test(code)) {
     return 'javascript';
   }
-  return highlight.highlightAuto(
-      code, ['html', 'css', 'javascript']).language;
+  return highlight.highlightAuto(code, ['html', 'css', 'javascript']).language;
 }
 
 export function injectAutodetectedLanguage(markdownText: string): string {

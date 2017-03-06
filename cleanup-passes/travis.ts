@@ -105,11 +105,11 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   // use stable chrome
   const ChromeSource = 'google-chrome';
   const ChromePackage = 'google-chrome-stable';
-  if (ta.apt.sources.indexOf(ChromeSource) === -1) {
-    ta.apt.sources.push(ChromeSource);
+  if (ta.apt.sources!.indexOf(ChromeSource) === -1) {
+    ta.apt.sources!.push(ChromeSource);
   }
-  if (ta.apt.packages.indexOf(ChromePackage) === -1) {
-    ta.apt.packages.push(ChromePackage);
+  if (ta.apt.packages!.indexOf(ChromePackage) === -1) {
+    ta.apt.packages!.push(ChromePackage);
   }
 
   // Shape travis env to object with global and/or matrix arrays
@@ -128,9 +128,9 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   const C11Env = 'CXX=g++-4.8';
 
   // remove C11 config (not needed in trusty dist)
-  ta.apt.sources = ta.apt.sources.filter(s => s !== C11Source);
-  ta.apt.packages = ta.apt.packages.filter(p => p !== C11Package);
-  te.global = te.global.filter(e => e !== C11Env);
+  ta.apt.sources = ta.apt.sources!.filter(s => s !== C11Source);
+  ta.apt.packages = ta.apt.packages!.filter(p => p !== C11Package);
+  te.global = te.global!.filter(e => e !== C11Env);
 
   travis.env = te;
 

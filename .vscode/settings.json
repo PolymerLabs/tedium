@@ -1,0 +1,23 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/*.js": true,
+    "**/*.d.t": true,
+    "repos/**": true
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/.DS_Store": true,
+    "*.d.ts": true,
+    "cleanup-passes/*.d.ts": true,
+    "**/*.js.map": true,
+    "**/*.js": true,
+    "**/custom_typings/*": false
+  },
+  "editor.formatOnSave": true,
+  "editor.formatOnType": true
+}

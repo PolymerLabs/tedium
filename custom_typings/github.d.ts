@@ -1,5 +1,7 @@
 declare module 'github' {
-  interface NodeCallback<T> { (err: any, res: T): any; }
+  interface NodeCallback<T> {
+    (err: any, res: T): any;
+  }
 
   interface Options {
     version: string;
@@ -20,7 +22,7 @@ declare module 'github' {
     number: number;
     title?: string;
     body?: string;
-    assignee?: string;
+    assignees?: string[]
     milestone?: number;
     labels?: string[];
     state?: string;
@@ -34,18 +36,18 @@ declare module 'github' {
     constructor(options: Options);
     repos: {
       getFromOrg(msg: GetFromOrgOpts, cb: NodeCallback<GitHubApi.Repo[]>): void;
-      get(msg: {user: string, repo: string},
-          cb: NodeCallback<GitHubApi.Repo>): void;
-    }
+      get(msg: {user: string, repo: string}, cb: NodeCallback<GitHubApi.Repo>):
+          void;
+    };
     pullRequests: {
-      create(
-          msg: CreatePullRequestOpts, cb: NodeCallback<GitHubApi.Issue>): void;
-    }
+      create(msg: CreatePullRequestOpts, cb: NodeCallback<GitHubApi.Issue>):
+          void;
+    };
     issues: {
       edit(msg: IssuesEditOpts, cb: NodeCallback<GitHubApi.Issue>): void;
-    }
+    };
     authenticate(credentials: {type: string, token: string}): void;
-    user: { get(msg: {}, cb: NodeCallback<GitHubApi.User>): void; }
+    user: {get(msg: {}, cb: NodeCallback<GitHubApi.User>): void;};
   }
   module GitHubApi {
     class Repo {
@@ -63,7 +65,7 @@ declare module 'github' {
       assignee: User;
       milestone: Milestone;
       state: string;
-      labels: { name: string, color: string, url: string }[];
+      labels: {name: string, color: string, url: string}[];
       user: User;
     }
     interface PullRequest extends Issue {}

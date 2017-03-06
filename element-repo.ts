@@ -22,7 +22,7 @@ export class ElementRepo {
     dir: string,
     ghRepo: Repo,
     repo: nodegit.Repository,
-    analyzer: Analyzer
+    analyzer: Analyzer|null
   }) {
     this.dir = args.dir;
     this.ghRepo = args.ghRepo;
@@ -51,7 +51,7 @@ export class ElementRepo {
    * A hydrolysis Analyzer for *all* elements in the PolymerElements
    * org and their dependencies.
    */
-  analyzer: Analyzer;
+  analyzer: Analyzer|null;
 
   /**
    * If true, commits made to the repo will be pushed.

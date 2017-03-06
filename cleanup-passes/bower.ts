@@ -55,17 +55,15 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
   }
 
   // Clean up an array bower file:
-  if (Array.isArray(bowerConfig['main']) &&
-      bowerConfig['main'].length === 1) {
+  if (Array.isArray(bowerConfig['main']) && bowerConfig['main'].length === 1) {
     bowerConfig['main'] = bowerConfig['main'][0];
     writeToBower(bowerPath, bowerConfig);
     await makeCommit(
-        element, ['bower.json'],
-        'Convert bower main from array to string.');
+        element, ['bower.json'], 'Convert bower main from array to string.');
   }
 
   if (!bowerConfig) {
-    return null;
+    return undefined;
   }
 
   if (!bowerConfig['ignore']) {
@@ -75,17 +73,19 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
         element, ['bower.json'], 'Add an ignore property to bower.json.');
   }
 
-  const wctSemver = '^4.0.0';
-
   if (bowerConfig.devDependencies) {
     const dd = bowerConfig.devDependencies;
-    if (dd['web-component-tester'] !== wctSemver) {
-      dd['web-component-tester'] = wctSemver;
+
+    const desiredWjsVersion = 'webcomponents/webcomponentsjs#^1.0.0-rc.1';
+    if (dd['webcomponentsjs'] !== desiredWjsVersion) {
+      dd['webcomponentsjs'] = desiredWjsVersion;
       writeToBower(bowerPath, bowerConfig);
-      await makeCommit(element, ['bower.json'], 'Depend on WCT 4');
+      await makeCommit(
+          element, ['bower.json'],
+          `Update webcomponentsjs version to ${desiredWjsVersion}`);
     }
   }
-}
+};
 
 register({
   name: 'bower',

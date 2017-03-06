@@ -48,11 +48,12 @@ import {CleanupConfig, getPasses} from './cleanup-pass';
 import {existsSync} from './cleanup-passes/util';
 import {ElementRepo, PushStatus} from './element-repo';
 
-const passNames = getPasses().map(p => p.name);
+require('source-map-support').install();
+
+const passNames = getPasses().map((p) => p.name);
 const cli = cliArgs([
-  {name: "help", type: Boolean, alias: "h", description: "Print usage."},
-  {
-    name: "max_changes",
+  {name: 'help', type: Boolean, alias: 'h', description: 'Print usage.'}, {
+    name: 'maxChanges',
     type: (x: string) => {
       if (!x) {
         return 0;
@@ -62,8 +63,8 @@ const cli = cliArgs([
       }
       throw new Error(`invalid max changes, expected an integer: ${x}`);
     },
-    alias: "c",
-    description: "The maximum number of repos to push. Default: 0",
+    alias: 'c',
+    description: 'The maximum number of repos to push. Default: 0',
     defaultValue: 0
   },
   {
@@ -72,7 +73,7 @@ const cli = cliArgs([
       if (!s) {
         throw new Error('Value expected for --repo|-r flag');
       }
-      let parts = s.split('/');
+      const parts = s.split('/');
       if (parts.length !== 2) {
         throw new Error(`Given repo ${s} is not in form user/repo`);
       }
@@ -94,7 +95,44 @@ const cli = cliArgs([
       return passName;
     },
     defaultValue: [],
-    description: `Cleanup passes to run. If this flag is used then only the given passes will run, and they will run even if they're disabled by default. Pass names: ${passNames.join(', ')}`
+    description:
+        `Cleanup passes to run. If this flag is used then only the given passes will run, and they will run even if they're disabled by default. Pass names: ${passNames
+            .join(', ')}`
+  },
+  {
+    name: 'branchToFix',
+    alias: 'b',
+    description:
+        `The branch to apply changes to. Repos without a branch of this name will be skipped.`,
+    type: String,
+    defaultValue: 'master'
+  },
+  {
+    name: 'noProgress',
+    description: `If true, does not display a progress bar while it works.`,
+    type: Boolean,
+    defaultValue: false
+  },
+  {
+    name: 'forceReview',
+    description:
+        `If true, all changes will go through review, even if tedium thinks they're safe and boring.`,
+    type: Boolean,
+    defaultValue: false
+  },
+  {
+    name: 'prBranchName',
+    description:
+        'When sending up a PR, push to this branch and then make a PR from it.',
+    type: String,
+    defaultValue: 'tedium-change'
+  },
+  {
+    name: 'prAssignee',
+    description:
+        'When sending up a PR, assign it to this person to review. If not given, the asignee will be inferred from the github token (i.e. it will be assigned to YOU!)',
+    type: String,
+    defaultValue: undefined,
   }
 ]);
 interface UserRepo {
@@ -103,19 +141,30 @@ interface UserRepo {
 }
 interface Options {
   help: boolean;
-  max_changes: number;
+  maxChanges: number;
   repo: UserRepo[];
   pass: string[];
+  branchToFix: string;
+  noProgress: boolean;
+  forceReview: boolean;
+  prAssignee: string|undefined;
 }
 const opts: Options = cli.parse();
 
 if (opts.help) {
   console.log(cli.getUsage({
-    header: "tedium is a friendly bot for doing mass changes to Polymer repos!",
-    title: "tedium"
+    header: 'tedium is a friendly bot for doing mass changes to Polymer repos!',
+    title: 'tedium'
   }));
   process.exit(0);
 }
+
+class NoopBar {
+  constructor(..._args: any[]) /* */ {};
+  tick(..._args: any[]) {}
+  render() {}
+}
+const MaybeProgressBar = opts.noProgress ? NoopBar : ProgressBar;
 
 let GITHUB_TOKEN: string;
 
@@ -134,7 +183,7 @@ Generate a token here:   https://github.com/settings/tokens
 interface Config {
   passes?: CleanupConfig;
 }
-let config: Config =
+const config: Config =
     JSON.parse(stripJsonComments(fs.readFileSync('config.json', 'utf8')));
 
 
@@ -153,7 +202,7 @@ async function getRepos(): Promise<GitHub.Repo[]> {
   const getRepo = promisify(github.repos.get);
   let progressLength = 2;
   if (opts.repo.length) {
-    progressLength += opts.repo.length
+    progressLength += opts.repo.length;
   }
   const progressBar = standardProgressBar(
       'Discovering repos in PolymerElements...', progressLength);
@@ -163,13 +212,13 @@ async function getRepos(): Promise<GitHub.Repo[]> {
   // First get the repos outside PolymerElements, and those that are always
   // needed.
   const repoPromises = [
-      getRepo({user: 'Polymer', repo: 'polymer'}),
-      getRepo({user: 'PolymerLabs', repo: 'promise-polyfill'}),
-      getRepo({user: 'PolymerElements', repo: 'ContributionGuide'})
+    // getRepo({user: 'Polymer', repo: 'polymer'}),
+    // getRepo({user: 'PolymerLabs', repo: 'promise-polyfill'}),
+    // getRepo({user: 'PolymerElements', repo: 'ContributionGuide'})
   ];
 
   if (opts.repo.length) {
-    for (let repo of opts.repo) {
+    for (const repo of opts.repo) {
       repoPromises.push(getRepo(repo));
     }
   } else {
@@ -187,7 +236,7 @@ async function getRepos(): Promise<GitHub.Repo[]> {
     progressBar.tick();
   }
 
-  repos.push(...await Promise.all(repoPromises))
+  repos.push(...await Promise.all(repoPromises));
   progressBar.tick();
   // github pagination is... not entirely consistent, and
   // sometimes gives us duplicate repos.
@@ -201,7 +250,7 @@ async function getRepos(): Promise<GitHub.Repo[]> {
     dedupedRepos.push(repo);
   }
   return dedupedRepos;
-}
+};
 
 /**
  * Like Promise.all, but also displays a progress bar that fills as the
@@ -212,17 +261,16 @@ function promiseAllWithProgress<T>(
     promises: Promise<T>[], label: string): Promise<T[]> {
   const progressBar = standardProgressBar(label, promises.length);
   for (const promise of promises) {
-    Promise.resolve(promise)
-        .then(() => progressBar.tick(), () => progressBar.tick());
+    Promise.resolve(promise).then(
+        () => progressBar.tick(), () => progressBar.tick());
   }
   return Promise.all(promises);
 }
 
 function standardProgressBar(label: string, total: number) {
-  const pb = new ProgressBar(
+  const pb = new MaybeProgressBar(
       `${pad(label, progressMessageWidth)} [:bar] :percent`,
-      {total, width: progressBarWidth}
-    );
+      {total, width: progressBarWidth});
   // force the progress bar to start at 0%
   pb.render();
   return pb;
@@ -238,11 +286,13 @@ function standardProgressBar(label: string, total: number) {
  *     rateLimit().then(() => doAGithubWrite());
  *
  */
-let rateLimit = (function() {
-  let previousPromise = Promise.resolve(null);
+const rateLimit = (function() {
+  let previousPromise = Promise.resolve<any>(null);
   return function rateLimit(delay: number) {
-    let curr = previousPromise.then(function() {
-      return new Promise((resolve) => { setTimeout(resolve, delay); });
+    const curr = previousPromise.then(function() {
+      return new Promise((resolve) => {
+        setTimeout(resolve, delay);
+      });
     });
     previousPromise = curr;
     return curr;
@@ -254,13 +304,13 @@ let rateLimit = (function() {
  *
  * returns a promise of the nodegit Branch object for the new branch.
  */
-async function checkoutNewBranch(
-    repo: nodegit.Repository, branchName: string): Promise<void> {
-  const commit = await repo.getHeadCommit();
-  const branch =
-      await nodegit.Branch.create(repo, branchName, commit, false);
-  return repo.checkoutBranch(branch);
-}
+async function checkoutNewBranch(repo: nodegit.Repository, branchName: string):
+    Promise<void> {
+      const commit = await repo.getHeadCommit();
+      const branch =
+          await nodegit.Branch.create(repo, branchName, commit, false);
+      return repo.checkoutBranch(branch);
+    }
 
 let elementsPushed = 0;
 let pushesDenied = 0;
@@ -272,7 +322,7 @@ let pushesDenied = 0;
  * TODO(rictic): this should live in a class rather than as globals.
  */
 function pushIsAllowed() {
-  if (elementsPushed < opts.max_changes) {
+  if (elementsPushed < opts.maxChanges) {
     elementsPushed++;
     return true;
   }
@@ -298,22 +348,24 @@ async function pushChanges(
     element.pushStatus = PushStatus.denied;
     return;
   }
-  let remoteBranchName = 'master';
-  if (element.needsReview) {
+  let remoteBranchName = opts.branchToFix;
+  const makePr = opts.forceReview || element.needsReview;
+  if (makePr) {
     remoteBranchName = localBranchName;
   }
 
   try {
     await pushBranch(element, localBranchName, remoteBranchName);
-    if (element.needsReview) {
-      await createPullRequest(element, localBranchName, 'master', assignee);
+    if (makePr) {
+      await createPullRequest(
+          element, localBranchName, opts.branchToFix, [assignee]);
     }
   } catch (e) {
     element.pushStatus = PushStatus.failed;
     throw e;
   }
   element.pushStatus = PushStatus.succeeded;
-}
+};
 
 /**
  * Pushes the given element's local branch name up to
@@ -323,22 +375,17 @@ async function pushChanges(
  */
 async function pushBranch(
     element: ElementRepo, localBranchName: string, remoteBranchName: string) {
-  const remote = await element.repo.getRemote("origin")
+  const remote = await element.repo.getRemote('origin');
 
   return remote.push(
-     [
-       "refs/heads/" + localBranchName + ":refs/heads/" +
-       remoteBranchName
-     ],
-     {
-       callbacks: {
-         credentials() {
-           return nodegit.Cred.userpassPlaintextNew(
-               GITHUB_TOKEN, "x-oauth-basic");
-         }
-       }
-     }
-  );
+      ['refs/heads/' + localBranchName + ':refs/heads/' + remoteBranchName], {
+        callbacks: {
+          credentials() {
+            return nodegit.Cred.userpassPlaintextNew(
+                GITHUB_TOKEN, 'x-oauth-basic');
+          }
+        }
+      });
 }
 
 /**
@@ -346,7 +393,7 @@ async function pushBranch(
  * branch identified by `base`, then assign the new pull request to `asignee`.
  */
 async function createPullRequest(
-    element: ElementRepo, head: string, base: string, assignee: string) {
+    element: ElementRepo, head: string, base: string, assignees: string[]) {
   const user = element.ghRepo.owner.login;
   const repo = element.ghRepo.name;
   await rateLimit(5000);
@@ -361,23 +408,23 @@ async function createPullRequest(
     number: pr.number,
     user,
     repo,
-    assignee,
+    assignees,
     labels: ['autogenerated'],
   });
-}
+};
 
 /**
  * Returns an authenticated github connection.
  */
 function connectToGithub() {
   const github = new GitHub({
-    version: "3.0.0",
-    protocol: "https",
+    version: '3.0.0',
+    protocol: 'https',
   });
 
   github.authenticate({type: 'oauth', token: GITHUB_TOKEN});
   return github;
-}
+};
 
 
 /**
@@ -397,7 +444,7 @@ async function analyzeRepos() {
         if (!stat.isDirectory()) {
           continue;
         }
-      } catch(e) {
+      } catch (e) {
         continue;
       }
       if (filename.startsWith('.')) {
@@ -416,7 +463,8 @@ async function analyzeRepos() {
 
   for (const dir of dirsToConsider) {
     for (const filename of fs.readdirSync(dir)) {
-      if (/index\.html|dependencies\.html/.test(filename) || !filename.endsWith('.html')) {
+      if (/index\.html|dependencies\.html/.test(filename) ||
+          !filename.endsWith('.html')) {
         continue;
       }
       // We want to ignore files with 'demo' in them, unless the element's
@@ -429,7 +477,9 @@ async function analyzeRepos() {
     }
   }
 
-  function filter(repo: string) { return !existsSync(repo); }
+  function filter(repo: string) {
+    return !existsSync(repo);
+  }
 
   // This code is conceptually simple, it's only complex due to ordering
   // and the progress bar. Basically we call analyzer.metadataTree on each
@@ -437,7 +487,8 @@ async function analyzeRepos() {
   const analyzer =
       await hydrolysis.Analyzer.analyze('repos/polymer/polymer.html', {filter});
 
-  const progressBar = new ProgressBar(
+
+  const progressBar = new MaybeProgressBar(
       `:msg [:bar] :percent`,
       {total: htmlFiles.length + 1, width: progressBarWidth});
 
@@ -460,14 +511,15 @@ async function analyzeRepos() {
  * reports which ones would be pushed,
  */
 function reportOnChangesMade(elements: ElementRepo[]) {
-  const pushedElements = elements.filter((e) =>
-      e.pushStatus === PushStatus.succeeded);
-  const failedElements = elements.filter((e) =>
-      e.pushStatus === PushStatus.failed);
-  const deniedElements = elements.filter((e) =>
-      e.pushStatus === PushStatus.denied);;
+  const pushedElements =
+      elements.filter((e) => e.pushStatus === PushStatus.succeeded);
+  const failedElements =
+      elements.filter((e) => e.pushStatus === PushStatus.failed);
+  const deniedElements =
+      elements.filter((e) => e.pushStatus === PushStatus.denied);
+  ;
 
-  const messageAndElements:[{0: string, 1: ElementRepo[]}] = [
+  const messageAndElements: [{0: string, 1: ElementRepo[]}] = [
     ['Elements that would have been pushed:', deniedElements],
     ['Elements pushed successfully:', pushedElements],
     ['Elements that I tried to push that FAILED:', failedElements],
@@ -493,41 +545,60 @@ async function _main(elements: ElementRepo[]) {
   const user = await promisify(github.user.get)({});
   const ghRepos = await getRepos();
 
-  const promises: Promise<ElementRepo>[] = [];
+  const promises = [];
 
   // Clone git repos.
   for (const ghRepo of ghRepos) {
-    promises.push(Promise.resolve().then(() => {
+    promises.push((async() => {
       const dir = path.join('repos', ghRepo.name);
-      let repoPromise: Promise<nodegit.Repository>;
+      let repo: nodegit.Repository;
       if (existsSync(dir)) {
-        repoPromise = nodegit.Repository.open(dir);
+        repo = await nodegit.Repository.open(dir);
       } else {
-        repoPromise = rateLimit(100).then(
-            () => nodegit.Clone.clone(ghRepo.clone_url, dir, null));
+        await rateLimit(100);
+        repo = await nodegit.Clone.clone(ghRepo.clone_url, dir, undefined);
       }
-      return repoPromise.then((repo) =>
-        new ElementRepo({repo, dir, ghRepo, analyzer: null})
-      );
-    }));
+      let skipThisElement = false;
+      if (opts.branchToFix !== 'master') {
+        let ref = undefined;
+        try {
+          ref = await repo.getBranch(`refs/remotes/origin/${opts.branchToFix}`);
+        } catch (_) {
+          skipThisElement = true;
+        }
+        if (ref) {
+          const commit = await repo.getReferenceCommit(ref);
+          const branch =
+              await nodegit.Branch.create(repo, opts.branchToFix, commit, true);
+          await repo.checkoutBranch(branch);
+        }
+      }
+      if (skipThisElement) {
+        return undefined;
+      }
+      return new ElementRepo({repo, dir, ghRepo, analyzer: null});
+    })());
   }
-  elements.push(...await promiseAllWithProgress(promises, 'Cloning repos...'));
+
+  elements.push(...filterOutUndefined(
+      await promiseAllWithProgress(promises, 'Cloning repos...')));
 
   // Analyze with hydrolysis
   const analyzer = await analyzeRepos();
   for (const element of elements) {
     element.analyzer = analyzer;
   }
-  elements.sort((l, r) => { return l.dir.localeCompare(r.dir); });
+  elements.sort((l, r) => {
+    return l.dir.localeCompare(r.dir);
+  });
 
   // Transform code on disk and push it up to github
   // (if that's what the user wants)
-  const cleanupPromises: Promise<any>[] = [];
   const excludes = new Set([
     'repos/style-guide',
     'repos/test-all',
     'repos/ContributionGuide',
-    'repos/molecules', // Was deleted
+    'repos/molecules',  // Was deleted
     'repos/polymer',
   ]);
 
@@ -535,7 +606,7 @@ async function _main(elements: ElementRepo[]) {
   const cleanupProgress =
       standardProgressBar('Applying transforms...', elements.length);
   for (const element of elements) {
-    let passesToRun: string[] = null;
+    let passesToRun: string[]|undefined = undefined;
     if (opts.pass.length > 0) {
       passesToRun = opts.pass;
     }
@@ -548,10 +619,9 @@ async function _main(elements: ElementRepo[]) {
       await checkoutNewBranch(element.repo, branchName);
       await rateLimit(0);
       await cleanup(element, config.passes || {}, passesToRun);
-      await pushChanges(element, branchName, user.login);
+      await pushChanges(element, branchName, opts.prAssignee || user.login);
     } catch (err) {
-      throw new Error(
-          `Error updating ${element.dir}:\n${err.stack || err}`);
+      throw new Error(`Error updating ${element.dir}:\n${err.stack || err}`);
     }
     cleanupProgress.tick();
   }
@@ -561,7 +631,7 @@ async function _main(elements: ElementRepo[]) {
     console.log('No changes needed!');
   } else if (pushesDenied === 0) {
     console.log(`Successfully pushed to ${elementsPushed} repos.`);
-  } else if (opts.max_changes === 0) {
+  } else if (opts.maxChanges === 0) {
     console.log(
         `${pushesDenied} changes ready to push. ` +
         `Call with --max_changes=N to push them up!`);
@@ -570,7 +640,7 @@ async function _main(elements: ElementRepo[]) {
         `Successfully pushed to ${elementsPushed} repos. ` +
         `${pushesDenied} remain.`);
   }
-}
+};
 
 async function main() {
   // We do this weird thing, where we pass in an empty array and have the
@@ -593,6 +663,10 @@ async function main() {
     console.error(err.stack || err);
     process.exit(1);
   }
+};
+
+function filterOutUndefined<V>(arr: Array<V|undefined|null>): Array<V> {
+  return arr.filter((v) => v != null) as V[];
 }
 
 main();

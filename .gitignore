@@ -3,4 +3,6 @@ node_modules
 token
 repos
 *.js
+*.js.map
+*.d.ts
 typings

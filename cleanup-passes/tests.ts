@@ -41,11 +41,11 @@ async function addShadowDomTests(element: ElementRepo): Promise<void> {
   const scripts = dom5.queryAll(domTree, (n) => n.tagName === 'script');
   let updateNeeded = false;
   for (const script of scripts) {
-    const data = script.childNodes[0];
+    const data = (script.childNodes || [])[0];
     if (!data || data.nodeName !== '#text') {
       continue;
     }
-    const program = espree.parse(data.value, {attachComment: true});
+    const program = espree.parse(data.value || '', {attachComment: true});
     estree_walker.walk(program, {
       enter(n) {
         if (!(n.type === 'CallExpression' &&
@@ -91,12 +91,13 @@ async function addShadowDomTests(element: ElementRepo): Promise<void> {
     });
     // Try to infer indentation
     let indentation = '  ';
-    const parent = script.parentNode;
-    const scriptIndex = parent.childNodes.indexOf(script);
+    const parent = script.parentNode!;
+    const scriptIndex = parent.childNodes!.indexOf(script);
     if (scriptIndex >= 0 &&
-        parent.childNodes[scriptIndex - 1].nodeName === '#text') {
-      const textJustBefore = parent.childNodes[scriptIndex - 1].value;
-      indentation = textJustBefore.match(/( +)$/)[1];
+        parent.childNodes![scriptIndex - 1].nodeName === '#text') {
+      const textJustBefore = parent.childNodes![scriptIndex - 1].value || '';
+      const match = textJustBefore.match(/( +)$/);
+      indentation = match ? match[1] : '';
     }
     data.value = '\n' + escodegen.generate(program, {
       comment: true,
