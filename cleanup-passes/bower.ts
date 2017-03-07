@@ -85,6 +85,27 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
           `Update webcomponentsjs version to ${desiredWjsVersion}`);
     }
   }
+
+  /**
+   * Step 1: tsc to compile
+   * Step 2: node tedium.js # this is safe, does not push
+   * Step 3: look at repos directory. do `git show` to see most recent commit.
+   * Step 4: remember you need to pass -b to specify the element branch to start
+   * from when making these automatic changes. So in this case: node tedium.js
+   * -b 2.0-preview
+   * Step 5: oh yeah, don't do everything, just do bower cleanups. node
+   * tedium.js -b 2.0-preview --pass=bower
+   * Step 6: if that looks good, I like to add the args: -c 1 --forceReview
+   *    that makes it create one PR that has to be reviewed by me.
+   */
+  if (bowerConfig.dependencies) {
+    const polymerVersion = bowerConfig.dependencies.polymer;
+    if (polymerVersion === 'Polymer/polymer#2.0-preview') {
+      bowerConfig.dependencies.polymer = 'Polymer/polymer#^2.0.0-rc.1';
+      writeToBower(bowerPath, bowerConfig);
+      await makeCommit(element, ['bower.json'], `Point to Polymer 2.0 RC 1`);
+    }
+  }
 };
 
 register({
