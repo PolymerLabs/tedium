@@ -66,26 +66,6 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
     return undefined;
   }
 
-  if (!bowerConfig['ignore']) {
-    bowerConfig['ignore'] = [];
-    writeToBower(bowerPath, bowerConfig);
-    await makeCommit(
-        element, ['bower.json'], 'Add an ignore property to bower.json.');
-  }
-
-  if (bowerConfig.devDependencies) {
-    const dd = bowerConfig.devDependencies;
-
-    const desiredWjsVersion = 'webcomponents/webcomponentsjs#^1.0.0-rc.1';
-    if (dd['webcomponentsjs'] !== desiredWjsVersion) {
-      dd['webcomponentsjs'] = desiredWjsVersion;
-      writeToBower(bowerPath, bowerConfig);
-      await makeCommit(
-          element, ['bower.json'],
-          `Update webcomponentsjs version to ${desiredWjsVersion}`);
-    }
-  }
-
   /**
    * Step 1: tsc to compile
    * Step 2: node tedium.js # this is safe, does not push
@@ -98,7 +78,7 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
    * Step 6: if that looks good, I like to add the args: -c 1 --forceReview
    *    that makes it create one PR that has to be reviewed by me.
    */
-  if (bowerConfig.dependencies) {
+  if (element.dir !== 'repos/polymer-starter-kit' && bowerConfig.dependencies) {
     const polymerVersion = bowerConfig.dependencies.polymer;
     if (polymerVersion === 'Polymer/polymer#2.0-preview') {
       bowerConfig.dependencies.polymer = 'Polymer/polymer#^2.0.0-rc.1';
