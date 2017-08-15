@@ -19,19 +19,13 @@ import * as path from 'path';
 
 import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo';
-import {existsSync, makeCommit} from './util';
+import {existsSync, makeCommit, writeToConfig} from './util';
 
 /**
  * Cleans up a number of common bower problems, like no "main" attribute,
  * "main" being an array rather than a string, etc.
  */
 async function cleanupBower(element: ElementRepo): Promise<void> {
-  // Write the bower config object out to the given path
-  function writeToBower(bowerPath: string, bowerConfig: Object) {
-    fs.writeFileSync(
-        bowerPath, JSON.stringify(bowerConfig, null, 2) + '\n', 'utf8');
-  }
-
   let bowerConfig: any = null;
   const bowerPath = path.join(element.dir, 'bower.json');
   if (!existsSync(bowerPath)) {
@@ -43,27 +37,23 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
     return;  // no bower to cleanup
   }
 
-  // Clean up nonexistant bower file
+  // Clean up nonexistant Bower file main property
   if (!bowerConfig['main'] || bowerConfig['main'].length === 0) {
     const elemFile = path.basename(element.dir) + '.html';
 
     if (existsSync(path.join(element.dir, elemFile))) {
       bowerConfig['main'] = elemFile;
-      writeToBower(bowerPath, bowerConfig);
+      writeToConfig(bowerPath, bowerConfig);
       await makeCommit(element, ['bower.json'], 'Add bower main file.');
     }
   }
 
-  // Clean up an array bower file:
+  // Clean up an array Bower file main property:
   if (Array.isArray(bowerConfig['main']) && bowerConfig['main'].length === 1) {
     bowerConfig['main'] = bowerConfig['main'][0];
-    writeToBower(bowerPath, bowerConfig);
+    writeToConfig(bowerPath, bowerConfig);
     await makeCommit(
         element, ['bower.json'], 'Convert bower main from array to string.');
-  }
-
-  if (!bowerConfig) {
-    return undefined;
   }
 
   /**
@@ -82,7 +72,7 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
     const polymerVersion = bowerConfig.dependencies.polymer;
     if (polymerVersion === 'Polymer/polymer#2.0-preview') {
       bowerConfig.dependencies.polymer = 'Polymer/polymer#^2.0.0-rc.1';
-      writeToBower(bowerPath, bowerConfig);
+      writeToConfig(bowerPath, bowerConfig);
       await makeCommit(element, ['bower.json'], `Point to Polymer 2.0 RC 1`);
     }
   }
