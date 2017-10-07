@@ -35,9 +35,12 @@ interface TravisConfig {
     }
   };
   dist?: string,
-  sudo?: 'false' | 'required',
+  sudo?: 'false' | 'required';
   env?: TravisEnv;
   node_js?: string | number;
+  cache?: {
+    directories?: string[]
+  };
 }
 
 async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
@@ -95,6 +98,19 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
     delete ta.sauce_connect;
   }
 
+  // cache node modules
+  // https://docs.travis-ci.com/user/caching/#Arbitrary-directories
+  if (!travis.cache) {
+    travis.cache = {
+      directories: ['node_modules']
+    }
+  }
+  const cachedirs = travis.cache.directories;
+  if (cachedirs.indexOf('node_modules') === -1) {
+    cachedirs.push('node_modules');
+  }
+
+  // APT packages
   if (!ta.apt) {
     ta.apt = {
       sources: [],
