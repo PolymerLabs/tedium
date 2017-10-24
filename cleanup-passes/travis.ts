@@ -18,25 +18,24 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
 
-import {register} from '../cleanup-pass';
-import {ElementRepo} from '../element-repo';
-import {existsSync, makeCommit} from './util';
+import { register } from '../cleanup-pass';
+import { ElementRepo } from '../element-repo';
+import { existsSync, makeCommit } from './util';
 
-type TravisEnv = {global?: string[], matrix?: string[]};
+type TravisEnv = {
+  global?: string[],
+  matrix?: string[]
+};
 
 interface TravisConfig {
   before_script?: string[];
   addons?: {
     firefox?: string | number,
+    chrome?: 'stable' | 'beta',
     sauce_connect?: boolean,
-    apt?: {
-      packages?: string[],
-      sources?: string[]
-    }
+    apt?: { packages?: string[], sources?: string[] }
   };
-  dist?: string,
-  sudo?: 'false' | 'required',
-  env?: TravisEnv;
+  dist?: string, sudo?: 'false' | 'required', env?: TravisEnv;
   node_js?: string | number;
 }
 
@@ -51,17 +50,7 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   let travis: TravisConfig = yaml.safeLoad(travisConfigBlob);
 
-  const tools = [
-    'bower',
-    'polylint',
-    'web-component-tester'
-  ];
-
-  const beforeScript = [
-    `npm install -g ${tools.join(" ")}`,
-    'bower install',
-    'polylint'
-  ];
+  const beforeScript = ['npm install -g polymer-cli', 'polymer install --variants'];
 
   // update travis config
   // Add polylint to all elements
@@ -75,7 +64,8 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   // use ubuntu trusty
   travis.dist = 'trusty';
-  travis.sudo = 'required';
+  // use docker
+  travis.sudo = 'false';
 
   // use boron lts node (v6)
   travis.node_js = '6';
@@ -95,21 +85,34 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
     delete ta.sauce_connect;
   }
 
-  if (!ta.apt) {
-    ta.apt = {
-      sources: [],
-      packages: []
-    }
-  }
-
   // use stable chrome
-  const ChromeSource = 'google-chrome';
-  const ChromePackage = 'google-chrome-stable';
-  if (ta.apt.sources!.indexOf(ChromeSource) === -1) {
-    ta.apt.sources!.push(ChromeSource);
-  }
-  if (ta.apt.packages!.indexOf(ChromePackage) === -1) {
-    ta.apt.packages!.push(ChromePackage);
+  ta.chrome = 'stable';
+
+  // remove old apt segment for chrome
+  if (ta.apt) {
+    const ChromeSource = 'google-chrome';
+    const ChromePackage = 'google-chrome-stable';
+    if (ta.apt.sources) {
+      const ChromeSourceIndex = ta.apt.sources.indexOf(ChromeSource);
+      if (ChromeSourceIndex > -1) {
+        ta.apt.sources.splice(ChromeSourceIndex, 1);
+      }
+      if (ta.apt.sources.length === 0) {
+        delete ta.apt.sources;
+      }
+    }
+    if (ta.apt.packages) {
+      const ChromePackageIndex = ta.apt.packages.indexOf(ChromePackage);
+      if (ChromePackageIndex > -1) {
+        ta.apt.packages.splice(ChromePackageIndex, 1);
+      }
+      if (ta.apt.packages.length === 0) {
+        delete ta.apt.packages;
+      }
+    }
+    if (!ta.apt.sources && !ta.apt.packages) {
+      delete ta.apt;
+    }
   }
 
   // Shape travis env to object with global and/or matrix arrays
@@ -139,7 +142,7 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   if (travisConfigBlob !== updatedTravisConfigBlob) {
     // changes to travis should always need review
     element.needsReview = true;
-    fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, 'utf8');
+    fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, { encoding: 'utf8' });
     await makeCommit(element, ['.travis.yml'], 'Update travis config');
   }
 }
