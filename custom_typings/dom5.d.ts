@@ -4,10 +4,7 @@ declare module 'dom5' {
     tagName: string;
     childNodes: Node[];
     parentNode: Node;
-    attrs: {
-      name: string;
-      value: string;
-    }[];
+    attrs: {name: string; value: string;}[];
     value?: string;
   }
   export function parse(text: string): Node;

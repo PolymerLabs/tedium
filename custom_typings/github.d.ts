@@ -43,9 +43,8 @@ declare module 'github' {
       create(msg: CreatePullRequestOpts, cb: NodeCallback<GitHubApi.Issue>):
           void;
     };
-    issues: {
-      edit(msg: IssuesEditOpts, cb: NodeCallback<GitHubApi.Issue>): void;
-    };
+    issues:
+        {edit(msg: IssuesEditOpts, cb: NodeCallback<GitHubApi.Issue>): void;};
     authenticate(credentials: {type: string, token: string}): void;
     user: {get(msg: {}, cb: NodeCallback<GitHubApi.User>): void;};
   }

@@ -5,10 +5,13 @@ declare module 'nodegit' {
   }
   export class Branch {
     static create(
-        repo: Repository, branchName: string, commit: Commit,
+        repo: Repository,
+        branchName: string,
+        commit: Commit,
         force: boolean): Promise<Reference>;
     static lookup(
-        repo: Repository, branchName: string,
+        repo: Repository,
+        branchName: string,
         branch_type: Branch.BRANCH): Promise<Reference>;
   }
   export namespace Branch {
@@ -22,7 +25,9 @@ declare module 'nodegit' {
   export class Repository {
     static open(path: string): Promise<Repository>;
     createCommitOnHead(
-        filesToAdd: string[], author: Signature, committer: Signature,
+        filesToAdd: string[],
+        author: Signature,
+        committer: Signature,
         message: string): Promise<Oid>;
     getHeadCommit(): Promise<Commit>;
     checkoutBranch(branch: string|Reference): Promise<void>;

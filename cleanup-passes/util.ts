@@ -35,8 +35,8 @@ export function existsSync(fn: string): boolean {
  * Creates a commit for the element and marks it as dirty.
  */
 export async function makeCommit(
-    element: ElementRepo, files: string[],
-    commitMessage: string): Promise<void> {
+    element: ElementRepo, files: string[], commitMessage: string):
+    Promise<void> {
   const getSignature = () => nodegit.Signature.now(
       'Polymer Format Bot', 'format-bot@polymer-project.org');
 
@@ -56,8 +56,8 @@ export function getJsBinLink(element: ElementRepo): string {
     const guideContents = fs.readFileSync(pathToGuide, 'utf8');
     // Extract the line that looks like:
     //     jsbin=https://jsbin.com/...
-    const m = guideContents.match(
-        /\n\s*jsbin\s*=\s*(https:\/\/jsbin\.com\/[^\s]*)/);
+    const m =
+        guideContents.match(/\n\s*jsbin\s*=\s*(https:\/\/jsbin\.com\/[^\s]*)/);
     if (m) {
       jsbin = m[1];
     }

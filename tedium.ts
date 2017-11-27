@@ -52,7 +52,8 @@ require('source-map-support').install();
 
 const passNames = getPasses().map((p) => p.name);
 const cli = cliArgs([
-  {name: 'help', type: Boolean, alias: 'h', description: 'Print usage.'}, {
+  {name: 'help', type: Boolean, alias: 'h', description: 'Print usage.'},
+  {
     name: 'maxChanges',
     type: (x: string) => {
       if (!x) {
@@ -96,8 +97,8 @@ const cli = cliArgs([
     },
     defaultValue: [],
     description:
-        `Cleanup passes to run. If this flag is used then only the given passes will run, and they will run even if they're disabled by default. Pass names: ${passNames
-            .join(', ')}`
+        `Cleanup passes to run. If this flag is used then only the given passes will run, and they will run even if they're disabled by default. Pass names: ${
+            passNames.join(', ')}`
   },
   {
     name: 'branchToFix',
@@ -160,9 +161,12 @@ if (opts.help) {
 }
 
 class NoopBar {
-  constructor(..._args: any[]) /* */ {};
-  tick(..._args: any[]) {}
-  render() {}
+  constructor(..._args: any[]) /* */ {
+  };
+  tick(..._args: any[]) {
+  }
+  render() {
+  }
 }
 const MaybeProgressBar = opts.noProgress ? NoopBar : ProgressBar;
 
@@ -304,13 +308,12 @@ const rateLimit = (function() {
  *
  * returns a promise of the nodegit Branch object for the new branch.
  */
-async function checkoutNewBranch(repo: nodegit.Repository, branchName: string):
-    Promise<void> {
-      const commit = await repo.getHeadCommit();
-      const branch =
-          await nodegit.Branch.create(repo, branchName, commit, false);
-      return repo.checkoutBranch(branch);
-    }
+async function checkoutNewBranch(
+    repo: nodegit.Repository, branchName: string): Promise<void> {
+  const commit = await repo.getHeadCommit();
+  const branch = await nodegit.Branch.create(repo, branchName, commit, false);
+  return repo.checkoutBranch(branch);
+}
 
 let elementsPushed = 0;
 let pushesDenied = 0;
@@ -451,8 +454,16 @@ async function analyzeRepos() {
         continue;
       }
       const dirnamesToIgnore = new Set([
-        'test', 'util', 'explainer', 'src', 'helpers', 'site', 'templates',
-        'viewer', 'demo', 'patterns'
+        'test',
+        'util',
+        'explainer',
+        'src',
+        'helpers',
+        'site',
+        'templates',
+        'viewer',
+        'demo',
+        'patterns'
       ]);
       if (dirnamesToIgnore.has(path.basename(filename))) {
         continue;
@@ -549,7 +560,7 @@ async function _main(elements: ElementRepo[]) {
 
   // Clone git repos.
   for (const ghRepo of ghRepos) {
-    promises.push((async() => {
+    promises.push((async () => {
       const dir = path.join('repos', ghRepo.name);
       let repo: nodegit.Repository;
       if (existsSync(dir)) {

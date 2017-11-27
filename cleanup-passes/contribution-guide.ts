@@ -31,8 +31,7 @@ async function generateContributionGuide(element: ElementRepo): Promise<void> {
         'Couldn\'t find canonical contribution guide. git checkout error?');
   }
 
-  let contributionGuideContents =
-      fs.readFileSync(pathToCanonicalGuide, 'utf8');
+  let contributionGuideContents = fs.readFileSync(pathToCanonicalGuide, 'utf8');
   const pathToExistingGuide = path.join(element.dir, 'CONTRIBUTING.md');
   let guideExists = false;
   let existingGuideContents = '';
@@ -46,7 +45,8 @@ async function generateContributionGuide(element: ElementRepo): Promise<void> {
   // The existing one will look like:
   //     [http://jsbin.com/cagye](http://jsbin.com/cagye/edit?html,javascript)
   contributionGuideContents = contributionGuideContents.replace(
-      /\[https?:\/\/jsbin\.com\/.*?\]\s*\(https?:\/\/jsbin.com\/.*?\)/, `[${desiredJsbinLink}](${desiredJsbinLink})`);
+      /\[https?:\/\/jsbin\.com\/.*?\]\s*\(https?:\/\/jsbin.com\/.*?\)/,
+      `[${desiredJsbinLink}](${desiredJsbinLink})`);
 
   // Insert the preamble
   contributionGuideContents = `<!--

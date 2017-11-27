@@ -93,16 +93,14 @@ class MarkdownMarkdownRenderer {
     const columns = content.slice(0, -1).split('|');
     const result = `| ${columns.join(' | ')} |\n`;
     if (isHeader) {
-      const headerSeparator = `|${
-                              ' --- |'.repeat(columns.length)}`;
+      const headerSeparator = `|${' --- |'.repeat(columns.length)}`;
       return result + headerSeparator;
     }
     return result;
   }
 
   tablecell(content: string, flags: {header: boolean, align: string}) {
-    return `${flags.header ? '😿TH😿' : ''
-                                      }${content}|`;
+    return `${flags.header ? '😿TH😿' : ''}${content}|`;
   }
 
   strong(text: string) {

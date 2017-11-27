@@ -108,15 +108,15 @@ async function addShadowDomTests(element: ElementRepo): Promise<void> {
           adjustMultilineComment: true
         }
       }
-    }) + '\n' + indentation;
+    }) + '\n' +
+        indentation;
   }
 
   if (updateNeeded) {
     fs.writeFileSync(testIndexFile, dom5.serialize(domTree) + '\n', 'utf8');
     element.needsReview = true;
     await makeCommit(
-        element, ['test/index.html'],
-        'Add shadow dom test configurations.');
+        element, ['test/index.html'], 'Add shadow dom test configurations.');
   }
 }
 

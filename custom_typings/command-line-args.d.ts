@@ -17,7 +17,8 @@ declare module 'command-line-args' {
     getUsage(opts: UsageOpts): string;
   }
   function commandLineArgs(args: ArgDescriptor[]): CLI;
-  module commandLineArgs {}
+  module commandLineArgs {
+  }
 
   export = commandLineArgs;
 }

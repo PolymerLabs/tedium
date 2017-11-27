@@ -26,8 +26,8 @@ const repoTemplatePath = path.join('.github', issueTemplateName);
 
 async function addIssueTemplate(element: ElementRepo): Promise<void> {
   const shortName = `${element.ghRepo.owner.login}/${element.ghRepo.name}`;
-  const issueTemplate =
-`<!-- Instructions: https://github.com/${shortName}/CONTRIBUTING.md#filing-issues -->
+  const issueTemplate = `<!-- Instructions: https://github.com/${
+      shortName}/CONTRIBUTING.md#filing-issues -->
 ### Description
 <!-- Example: The \`paper-foo\` element causes the page to turn pink when clicked. -->
 
@@ -75,12 +75,9 @@ async function addIssueTemplate(element: ElementRepo): Promise<void> {
   }
 
   fs.writeFileSync(templatePath, issueTemplate, 'utf8');
-  const message = `[ci skip] ${templateExisted ? 'Update' : 'Add'} Issue Template`;
+  const message =
+      `[ci skip] ${templateExisted ? 'Update' : 'Add'} Issue Template`;
   await makeCommit(element, [repoTemplatePath], message);
 }
 
-register({
-  name: 'issue-template',
-  pass: addIssueTemplate,
-  runsByDefault: true
-})
+register({name: 'issue-template', pass: addIssueTemplate, runsByDefault: true})
