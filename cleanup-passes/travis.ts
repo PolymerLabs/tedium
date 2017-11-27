@@ -18,9 +18,9 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
 
-import { register } from '../cleanup-pass';
-import { ElementRepo } from '../element-repo';
-import { existsSync, makeCommit } from './util';
+import {register} from '../cleanup-pass';
+import {ElementRepo} from '../element-repo';
+import {existsSync, makeCommit} from './util';
 
 type TravisEnv = {
   global?: string[];
@@ -133,8 +133,10 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   const C11Env = 'CXX=g++-4.8';
 
   // remove C11 config (not needed in trusty dist)
-  ta.apt.sources = ta.apt.sources!.filter(s => s !== C11Source);
-  ta.apt.packages = ta.apt.packages!.filter(p => p !== C11Package);
+  if (ta.apt) {
+    ta.apt.sources = ta.apt.sources!.filter(s => s !== C11Source);
+    ta.apt.packages = ta.apt.packages!.filter(p => p !== C11Package);
+  }
   te.global = te.global!.filter(e => e !== C11Env);
 
   travis.env = te;
