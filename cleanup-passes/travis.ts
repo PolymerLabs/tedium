@@ -23,8 +23,8 @@ import { ElementRepo } from '../element-repo';
 import { existsSync, makeCommit } from './util';
 
 type TravisEnv = {
-  global?: string[],
-  matrix?: string[]
+  global?: string[];
+  matrix?: string[];
 };
 
 interface TravisConfig {
@@ -65,6 +65,8 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   // use ubuntu trusty
   travis.dist = 'trusty';
   // use docker
+  // Note: must explicitly set to 'false' to enable docker instances
+  // https://docs.travis-ci.com/user/reference/trusty/#Container-based-with-sudo%3A-false
   travis.sudo = 'false';
 
   // use boron lts node (v6)
@@ -118,9 +120,9 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   // Shape travis env to object with global and/or matrix arrays
   let te = travis.env;
   if (!te) {
-    te = {global: []};
+    te = { global: [] };
   } else if (Array.isArray(te)) {
-    te = {global: <string[]>te};
+    te = { global: <string[]>te };
   }
 
   // C11 dependencies for node >= 4
