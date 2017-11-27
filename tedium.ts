@@ -39,7 +39,7 @@ import * as pad from 'pad';
 import * as path from 'path';
 import * as ProgressBar from 'progress';
 import * as promisify from 'promisify-node';
-import * as rimraf from 'rimraf';
+import * as del from 'del';
 import * as stripJsonComments from 'strip-json-comments';
 
 import './cleanup-passes/register-all';
@@ -539,7 +539,7 @@ function reportOnChangesMade(elements: ElementRepo[]) {
 }
 
 async function _main(elements: ElementRepo[]) {
-  await promisify(rimraf)('repos');
+  await del('repos');
   fs.mkdirSync('repos');
 
   const user = await promisify(github.user.get)({});
