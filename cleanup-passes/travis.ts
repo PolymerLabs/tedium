@@ -30,9 +30,9 @@ type TravisEnv = {
 interface TravisConfig {
   before_script?: string[];
   addons?: {
-    firefox?: string | number,
-    chrome?: 'stable' | 'beta',
-    sauce_connect?: boolean,
+    firefox?: string | number;
+    chrome?: 'stable' | 'beta';
+    sauce_connect?: boolean;
     apt?: { packages?: string[], sources?: string[] }
   };
   dist?: string, sudo?: 'false' | 'required', env?: TravisEnv;
