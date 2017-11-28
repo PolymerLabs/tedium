@@ -30,13 +30,13 @@ type TravisEnv = {
 interface TravisConfig {
   before_script?: string[];
   addons?: {
-    firefox?: string | number;
+    firefox?: string|number;
     chrome?: 'stable' | 'beta';
     sauce_connect?: boolean;
-    apt?: { packages?: string[], sources?: string[] }
+    apt?: {packages?: string[], sources?: string[]}
   };
-  dist?: string, sudo?: 'false' | 'required', env?: TravisEnv;
-  node_js?: string | number;
+  dist?: string, sudo?: 'false'|'required', env?: TravisEnv;
+  node_js?: string|number;
 }
 
 async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
@@ -50,13 +50,14 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   let travis: TravisConfig = yaml.safeLoad(travisConfigBlob);
 
-  const beforeScript = ['npm install -g polymer-cli', 'polymer install --variants'];
+  const beforeScript =
+      ['npm install -g polymer-cli', 'polymer install --variants'];
 
   // update travis config
   // Add polylint to all elements
   if (Array.isArray(travis.before_script)) {
     const beforeScriptEqual = travis.before_script.reduce(
-      (acc, s, idx) => { return acc && (beforeScript[idx] === s) }, true);
+        (acc, s, idx) => {return acc && (beforeScript[idx] === s)}, true);
     if (!beforeScriptEqual) {
       travis.before_script = beforeScript;
     }
@@ -120,9 +121,9 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   // Shape travis env to object with global and/or matrix arrays
   let te = travis.env;
   if (!te) {
-    te = { global: [] };
+    te = {global: []};
   } else if (Array.isArray(te)) {
-    te = { global: <string[]>te };
+    te = {global: <string[]>te};
   }
 
   // C11 dependencies for node >= 4
@@ -146,7 +147,8 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   if (travisConfigBlob !== updatedTravisConfigBlob) {
     // changes to travis should always need review
     element.needsReview = true;
-    fs.writeFileSync(travisConfigPath, updatedTravisConfigBlob, { encoding: 'utf8' });
+    fs.writeFileSync(
+        travisConfigPath, updatedTravisConfigBlob, {encoding: 'utf8'});
     await makeCommit(element, ['.travis.yml'], 'Update travis config');
   }
 }

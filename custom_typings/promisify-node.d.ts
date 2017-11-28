@@ -1,5 +1,7 @@
 declare module 'promisify-node' {
-  interface NodeCallback<T> { (err: any, res: T): any; }
+  interface NodeCallback<T> {
+    (err: any, res: T): any;
+  }
 
   function promisify<T>(f: (cb: NodeCallback<T>) => void): () => Promise<T>;
   function promisify<A1, T>(f: (a: A1, cb: NodeCallback<T>) => void): (a: A1) =>
@@ -10,6 +12,7 @@ declare module 'promisify-node' {
   function promisify<A1, A2, A3, T>(
       f: (a: A1, a2: A2, a3: A3, cb: NodeCallback<T>) =>
           void): (a: A1, a2: A2, a3: A3) => Promise<T>;
-  module promisify {}
+  module promisify {
+  }
   export = promisify;
 }

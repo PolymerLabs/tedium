@@ -26,17 +26,14 @@ import {Element, Behavior} from 'hydrolysis';
 /**
  * Generates README.md for the element, unless it's in the blacklist.
  */
-async function generateReadme(element: ElementRepo):
-    Promise<void> {
-      const docInfo = extractDocumentationInfo(element);
+async function generateReadme(element: ElementRepo): Promise<void> {
+  const docInfo = extractDocumentationInfo(element);
 
-      let readmeContents = `
+  let readmeContents = `
 <!---
 
 This README is automatically generated from the comments in these files:
-${Array.from(docInfo.implementationFiles)
-                               .sort()
-                               .join('  ')}
+${Array.from(docInfo.implementationFiles).sort().join('  ')}
 
 Edit those files, and our readme bot will duplicate them over here!
 Edit this file, and the bot will squash your changes :)
@@ -48,64 +45,62 @@ thing! https://github.com/PolymerLabs/tedium/issues
 
 `;
 
-      if (existsSync(path.join(element.dir, '.travis.yml'))) {
-        readmeContents +=
-            `[![Build status](https://travis-ci.org/${element.ghRepo.owner
-                .login}/${element.ghRepo
-                .name}.svg?branch=master)](https://travis-ci.org/${element
-                .ghRepo.owner.login}/${element.ghRepo.name})\n\n`;
-      }
+  if (existsSync(path.join(element.dir, '.travis.yml'))) {
+    readmeContents +=
+        `[![Build status](https://travis-ci.org/${element.ghRepo.owner.login}/${
+            element.ghRepo.name}.svg?branch=master)](https://travis-ci.org/${
+            element.ghRepo.owner.login}/${element.ghRepo.name})\n\n`;
+  }
 
-      // These elements are going to have a page in the element catalog.
-      if (/^(gold|platinum|paper|neon|iron|carbon)-/.test(
-              element.ghRepo.name)) {
-        readmeContents +=
-            `_[Demo and API docs](https://elements.polymer-project.org/elements/${element
-                .ghRepo.name})_` +
-            '\n\n';
-      }
+  // These elements are going to have a page in the element catalog.
+  if (/^(gold|platinum|paper|neon|iron|carbon)-/.test(element.ghRepo.name)) {
+    readmeContents +=
+        `_[Demo and API docs](https://elements.polymer-project.org/elements/${
+            element.ghRepo.name})_` +
+        '\n\n';
+  }
 
-      // If this repo is named after a behavior, what would that behavior be
-      // named?
-      // This turns e.g. iron-a11y-keys-behavior into
-      // Polymer.IronA11yKeysBehavior
-      let canonicalBehaviorName =
-          'Polymer.' + wordsWithDashesToCamelCase(element.ghRepo.name);
-      if (!canonicalBehaviorName.endsWith('Behavior')) {
-        canonicalBehaviorName += 'Behavior';
-      }
+  // If this repo is named after a behavior, what would that behavior be
+  // named?
+  // This turns e.g. iron-a11y-keys-behavior into
+  // Polymer.IronA11yKeysBehavior
+  let canonicalBehaviorName =
+      'Polymer.' + wordsWithDashesToCamelCase(element.ghRepo.name);
+  if (!canonicalBehaviorName.endsWith('Behavior')) {
+    canonicalBehaviorName += 'Behavior';
+  }
 
-      if (docInfo.nameToContent.has(element.ghRepo.name)) {
-        // If there's an element with the same name as the repo, that comes
-        // first.
-        readmeContents += docInfo.nameToContent.get(element.ghRepo.name);
-        docInfo.nameToContent.delete(element.ghRepo.name);
-      } else if (docInfo.nameToContent.has(canonicalBehaviorName)) {
-        // Otherwise, if there's a behavior named the same as the repo, that
-        // comes
-        // first.
-        readmeContents += docInfo.nameToContent.get(canonicalBehaviorName);
-        docInfo.nameToContent.delete(canonicalBehaviorName);
-      }
+  if (docInfo.nameToContent.has(element.ghRepo.name)) {
+    // If there's an element with the same name as the repo, that comes
+    // first.
+    readmeContents += docInfo.nameToContent.get(element.ghRepo.name);
+    docInfo.nameToContent.delete(element.ghRepo.name);
+  } else if (docInfo.nameToContent.has(canonicalBehaviorName)) {
+    // Otherwise, if there's a behavior named the same as the repo, that
+    // comes
+    // first.
+    readmeContents += docInfo.nameToContent.get(canonicalBehaviorName);
+    docInfo.nameToContent.delete(canonicalBehaviorName);
+  }
 
-      // For the rest, it's the elements then the behaviors in sorted order.
-      const names = [...docInfo.tagNames].sort().concat(
-          [...docInfo.behaviorNames].sort());
-      for (const name of names) {
-        readmeContents += docInfo.nameToContent.get(name) || '';
-      }
+  // For the rest, it's the elements then the behaviors in sorted order.
+  const names =
+      [...docInfo.tagNames].sort().concat([...docInfo.behaviorNames].sort());
+  for (const name of names) {
+    readmeContents += docInfo.nameToContent.get(name) || '';
+  }
 
-      const readmePath = path.join(element.dir, 'README.md');
-      let oldContents = '';
-      if (existsSync(readmePath)) {
-        oldContents = fs.readFileSync(readmePath, 'utf8');
-      }
-      if (oldContents !== readmeContents) {
-        fs.writeFileSync(readmePath, readmeContents, 'utf8');
-        await makeCommit(
-            element, ['README.md'], '[skip ci] Autogenerate README file.');
-      }
-    }
+  const readmePath = path.join(element.dir, 'README.md');
+  let oldContents = '';
+  if (existsSync(readmePath)) {
+    oldContents = fs.readFileSync(readmePath, 'utf8');
+  }
+  if (oldContents !== readmeContents) {
+    fs.writeFileSync(readmePath, readmeContents, 'utf8');
+    await makeCommit(
+        element, ['README.md'], '[skip ci] Autogenerate README file.');
+  }
+}
 
 function extractDocumentationInfo(element: ElementRepo) {
   const implementationFiles = new Set<string>();
@@ -170,14 +165,13 @@ ${injectAutodetectedLanguage(analyzedElement.desc)}
   }
 }
 
-function wordsWithDashesToCamelCase(wordsWithDashes: string):
-    string {
-      return wordsWithDashes.split('-')
-          .map((word) => {
-            return word.charAt(0).toUpperCase() + word.slice(1);
-          })
-          .join('');
-    }
+function wordsWithDashesToCamelCase(wordsWithDashes: string): string {
+  return wordsWithDashes.split('-')
+      .map((word) => {
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join('');
+}
 
 register({
   name: 'readme',

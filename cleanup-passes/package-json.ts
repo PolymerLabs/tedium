@@ -86,77 +86,73 @@ function getDependencyVersion(name: string, version: string) {
 /**
  * Generate or update package.json from bower.json
  */
-async function generatePackageJson(element: ElementRepo):
-    Promise<void> {
-      const writeJson = (filePath: string, config: Object) => {
-        const fullPath = path.join(element.dir, filePath);
-        fs.writeFileSync(
-            fullPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
-      };
+async function generatePackageJson(element: ElementRepo): Promise<void> {
+  const writeJson = (filePath: string, config: Object) => {
+    const fullPath = path.join(element.dir, filePath);
+    fs.writeFileSync(fullPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
+  };
 
-      const readJson = (filePath: string) => {
-        const fullPath = path.join(element.dir, filePath);
-        if (fs.existsSync(fullPath)) {
-          return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-        }
-        return {};
-      };
-
-      const bowerConfig: any = readJson('bower.json');
-      const npmConfig: any = readJson('package.json');
-
-      if (!bowerConfig) {
-        throw new Error('bower.json not found');
-      }
-
-      // copies a property from bower.json to package.json
-      // bower.json is the source of truth
-      const copyProperty = (name: string, bowerName?: string) =>
-          npmConfig[name] = bowerConfig[bowerName || name] || npmConfig[name];
-
-      npmConfig['name'] = `@polymer/${bowerConfig['name']}`;
-      npmConfig['version'] =
-          getPackageVersion(bowerConfig['name'], bowerConfig['version']);
-
-      // properties that can be directly copied
-      ['description', 'repository', 'keywords'].forEach((s) => copyProperty(s));
-
-      // authors => contributors
-      // https://docs.npmjs.com/files/package.json#people-fields-author-contributors
-      copyProperty('contributors', 'authors');
-
-      // make it public
-      delete npmConfig['private'];
-
-      // https://docs.npmjs.com/files/package.json#license
-      npmConfig['license'] = 'BSD-3-Clause';
-
-      const npmDependencies = npmConfig['dependencies'] =
-          npmConfig['dependencies'] || {};
-      const bowerDependencies = bowerConfig['dependencies'] || {};
-
-      const npmDevDependencies = npmConfig['devDependencies'] =
-          npmConfig['devDependencies'] || {};
-      const bowerDevDependencies = bowerConfig['devDependencies'] || {};
-
-      for (const bowerDep in bowerDependencies) {
-        const bowerVersion = bowerDependencies[bowerDep];
-        const npmDep = getNpmName(bowerDep, bowerVersion);
-        npmDependencies[npmDep] = getDependencyVersion(bowerDep, bowerVersion);
-      }
-
-      for (const bowerDep in bowerDevDependencies) {
-        const bowerVersion = bowerDevDependencies[bowerDep];
-        const npmDep = getNpmName(bowerDep, bowerVersion);
-        npmDevDependencies[npmDep] =
-            getDependencyVersion(bowerDep, bowerVersion);
-      }
-
-      writeJson('package.json', npmConfig);
-
-      await makeCommit(
-          element, ['package.json'], 'Generate/update package.json');
+  const readJson = (filePath: string) => {
+    const fullPath = path.join(element.dir, filePath);
+    if (fs.existsSync(fullPath)) {
+      return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
     }
+    return {};
+  };
+
+  const bowerConfig: any = readJson('bower.json');
+  const npmConfig: any = readJson('package.json');
+
+  if (!bowerConfig) {
+    throw new Error('bower.json not found');
+  }
+
+  // copies a property from bower.json to package.json
+  // bower.json is the source of truth
+  const copyProperty = (name: string, bowerName?: string) => npmConfig[name] =
+      bowerConfig[bowerName || name] || npmConfig[name];
+
+  npmConfig['name'] = `@polymer/${bowerConfig['name']}`;
+  npmConfig['version'] =
+      getPackageVersion(bowerConfig['name'], bowerConfig['version']);
+
+  // properties that can be directly copied
+  ['description', 'repository', 'keywords'].forEach((s) => copyProperty(s));
+
+  // authors => contributors
+  // https://docs.npmjs.com/files/package.json#people-fields-author-contributors
+  copyProperty('contributors', 'authors');
+
+  // make it public
+  delete npmConfig['private'];
+
+  // https://docs.npmjs.com/files/package.json#license
+  npmConfig['license'] = 'BSD-3-Clause';
+
+  const npmDependencies = npmConfig['dependencies'] =
+      npmConfig['dependencies'] || {};
+  const bowerDependencies = bowerConfig['dependencies'] || {};
+
+  const npmDevDependencies = npmConfig['devDependencies'] =
+      npmConfig['devDependencies'] || {};
+  const bowerDevDependencies = bowerConfig['devDependencies'] || {};
+
+  for (const bowerDep in bowerDependencies) {
+    const bowerVersion = bowerDependencies[bowerDep];
+    const npmDep = getNpmName(bowerDep, bowerVersion);
+    npmDependencies[npmDep] = getDependencyVersion(bowerDep, bowerVersion);
+  }
+
+  for (const bowerDep in bowerDevDependencies) {
+    const bowerVersion = bowerDevDependencies[bowerDep];
+    const npmDep = getNpmName(bowerDep, bowerVersion);
+    npmDevDependencies[npmDep] = getDependencyVersion(bowerDep, bowerVersion);
+  }
+
+  writeJson('package.json', npmConfig);
+
+  await makeCommit(element, ['package.json'], 'Generate/update package.json');
+}
 
 register({
   name: 'package-json',

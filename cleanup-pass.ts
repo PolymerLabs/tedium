@@ -38,8 +38,4 @@ export interface CleanupPass {
  *
  * See tedium.ts for the full type of config.json.
  */
-export interface CleanupConfig {
-  [passName: string]: {
-    blacklist?: string[];
-  }
-}
+export interface CleanupConfig { [passName: string]: {blacklist?: string[];} }
