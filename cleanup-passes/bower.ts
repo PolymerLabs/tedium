@@ -43,6 +43,12 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
     return;  // no bower to cleanup
   }
 
+  const fixedCaps = consistentlyCapitalizeDeps(bowerConfig);
+  if (fixedCaps) {
+    writeToBower(bowerPath, bowerConfig);
+    await makeCommit(element, ['bower.json'], 'Use consistent capitalization in bower references of Polymer/, PolymerLabs/, and PolymerElements/');
+  }
+
   // Clean up nonexistant bower file
   if (!bowerConfig['main'] || bowerConfig['main'].length === 0) {
     const elemFile = path.basename(element.dir) + '.html';
@@ -87,6 +93,38 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
     }
   }
 };
+
+type BowerConfig = {
+  dependencies?: {[dirname: string]: string};
+  devDependencies?: {[dirname: string]: string};
+}
+
+function consistentlyCapitalizeDeps(bowerConfig: BowerConfig) {
+  function consistentlyCapitalizeDependenciesObject(deps?: {[dirname: string]: string}) {
+    let madeChange = false;
+    if (!deps) {
+      return false;
+    }
+    for (const key in deps) {
+      const value = deps[key];
+      const newValue = value
+          .replace(/^polymerelements\//i, 'PolymerElements/')
+          .replace(/^polymer\//i, 'Polymer/')
+          .replace(/^polymerlabs\//i, 'PolymerLabs/');
+      deps[key] = newValue;
+      madeChange = madeChange || value !== newValue;
+    }
+    return madeChange;
+  }
+
+
+  let madeChange = consistentlyCapitalizeDependenciesObject(
+      bowerConfig.dependencies);
+  madeChange = consistentlyCapitalizeDependenciesObject(
+      bowerConfig.devDependencies) || madeChange;
+
+  return madeChange;
+}
 
 register({
   name: 'bower',

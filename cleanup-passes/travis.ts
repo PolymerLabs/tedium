@@ -156,5 +156,5 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 register({
   name: 'travis',
   pass: cleanupTravisConfig,
-  runsByDefault: true,
+  runsByDefault: false,
 });
