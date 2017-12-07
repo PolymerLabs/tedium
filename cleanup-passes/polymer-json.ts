@@ -77,4 +77,4 @@ async function cleanupPolymer(element: ElementRepo): Promise<void> {
   await makeCommit(element, ['polymer.json'], commitMsg);
 }
 
-register({name: 'polymer', pass: cleanupPolymer, runsByDefault: true});
+register({name: 'polymer-json', pass: cleanupPolymer, runsByDefault: true});
