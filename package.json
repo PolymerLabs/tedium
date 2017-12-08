@@ -32,6 +32,7 @@
     "@types/marked": "0.0.27",
     "@types/node": "^4.2.23",
     "@types/progress": "^1.1.27",
+    "@types/semver": "^5.4.0",
     "command-line-args": "^2.0.4",
     "del": "^3.0.0",
     "dom5": "^1.3.1",
@@ -47,8 +48,10 @@
     "marked": "^0.3.5",
     "nodegit": "^0.16.0",
     "pad": "^1.0.0",
+    "polymer-project-config": "^3.6.0",
     "progress": "^1.1.8",
     "promisify-node": "^0.3.0",
+    "semver": "^5.4.1",
     "source-map-support": "^0.4.11",
     "strip-json-comments": "^2.0.0"
   },

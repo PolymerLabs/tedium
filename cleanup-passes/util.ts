@@ -64,3 +64,24 @@ export function getJsBinLink(element: ElementRepo): string {
   }
   return jsbin;
 }
+
+export function writeToConfig(path: string, config: Object): void {
+  fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\n', 'utf8');
+}
+
+// From
+// https://stackoverflow.com/questions/3115982/how-to-check-if-two-arrays-are-equal-with-javascript/16436975#16436975
+export function arraysEqual(a: String[], b: String[]): Boolean {
+  if (a === b)
+    return true;
+  if (a == null || b == null)
+    return false;
+  if (a.length != b.length)
+    return false;
+
+  for (let i = 0; i < a.length; ++i) {
+    if (a[i] !== b[i])
+      return false;
+  }
+  return true;
+}

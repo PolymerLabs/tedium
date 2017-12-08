@@ -20,7 +20,7 @@ import * as path from 'path';
 
 import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo';
-import {existsSync, makeCommit} from './util';
+import {existsSync, makeCommit, arraysEqual} from './util';
 
 type TravisEnv = {
   global?: string[];
@@ -29,19 +29,23 @@ type TravisEnv = {
 
 interface TravisConfig {
   before_script?: string[];
+  install?: string[];
   addons?: {
     firefox?: string|number;
-    chrome?: 'stable' | 'beta';
+    chrome?: string | number;
     sauce_connect?: boolean;
-    apt?: {packages?: string[], sources?: string[]}
+    apt?: {packages?: string[]; sources?: string[];};
   };
-  dist?: string, sudo?: 'false'|'required', env?: TravisEnv;
-  node_js?: string|number;
+  script?: string[];
+  dist?: string;
+  sudo?: 'false'|'required';
+  env?: TravisEnv;
+  node_js?: string|number|string[];
+  cache?: {directories?: string[];};
 }
 
 async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   const travisConfigPath = path.join(element.dir, '.travis.yml');
-
   if (!existsSync(travisConfigPath)) {
     return;
   }
@@ -50,102 +54,84 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   let travis: TravisConfig = yaml.safeLoad(travisConfigBlob);
 
-  const beforeScript =
-      ['npm install -g polymer-cli', 'polymer install --variants'];
+  const tools = ['polymer-cli'];
 
-  // update travis config
-  // Add polylint to all elements
-  if (Array.isArray(travis.before_script)) {
-    const beforeScriptEqual = travis.before_script.reduce(
-        (acc, s, idx) => {return acc && (beforeScript[idx] === s)}, true);
-    if (!beforeScriptEqual) {
-      travis.before_script = beforeScript;
-    }
+  // Override install script for all elements
+  const install =
+      [`npm install -g ${tools.join(' ')}`, 'polymer install --variants'];
+  if (!Array.isArray(travis.install) || !arraysEqual(travis.install, install)) {
+    travis.install = install;
   }
 
-  // use ubuntu trusty
+  // Add polymer lint to all elements
+  const beforeScript = ['polymer lint'];
+  if (!Array.isArray(travis.before_script) ||
+      !arraysEqual(travis.before_script, beforeScript)) {
+    travis.before_script = beforeScript;
+  }
+
+  // Use Ubuntu Trusty
   travis.dist = 'trusty';
-  // use docker
+
+  // Use Docker
   // Note: must explicitly set to 'false' to enable docker instances
   // https://docs.travis-ci.com/user/reference/trusty/#Container-based-with-sudo%3A-false
   travis.sudo = 'false';
 
-  // use boron lts node (v6)
-  travis.node_js = '6';
+  // Use LTS Node
+  travis.node_js = 'stable';
 
-  // travis addons
+  // Ensure all variants are being tested across all browsers
+  const script = [
+    'xvfb-run polymer test',
+    '>-\nif [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then polymer test -s \'default\';\nfi'
+  ];
+  if (!Array.isArray(travis.script) || !arraysEqual(travis.script, script)) {
+    travis.script = script;
+  }
 
+  // Setup Travis Add-ons
   if (!travis.addons) {
     travis.addons = {};
   }
   const ta = travis.addons;
 
-  // use latest firefox
+  // Use stable Chrome
+  ta.chrome = 'stable';
+  // Use latest FireFox
   ta.firefox = 'latest';
 
-  // do not use sauce connect addon, let wct do it
+  // Do not use Sauce Connect Add-on, let WCT handle it
   if (ta.sauce_connect !== undefined) {
     delete ta.sauce_connect;
   }
 
-  // use stable chrome
-  ta.chrome = 'stable';
-
-  // remove old apt segment for chrome
-  if (ta.apt) {
-    const ChromeSource = 'google-chrome';
-    const ChromePackage = 'google-chrome-stable';
-    if (ta.apt.sources) {
-      const ChromeSourceIndex = ta.apt.sources.indexOf(ChromeSource);
-      if (ChromeSourceIndex > -1) {
-        ta.apt.sources.splice(ChromeSourceIndex, 1);
-      }
-      if (ta.apt.sources.length === 0) {
-        delete ta.apt.sources;
-      }
-    }
-    if (ta.apt.packages) {
-      const ChromePackageIndex = ta.apt.packages.indexOf(ChromePackage);
-      if (ChromePackageIndex > -1) {
-        ta.apt.packages.splice(ChromePackageIndex, 1);
-      }
-      if (ta.apt.packages.length === 0) {
-        delete ta.apt.packages;
-      }
-    }
-    if (!ta.apt.sources && !ta.apt.packages) {
-      delete ta.apt;
-    }
+  // Cache node_modules
+  // https://docs.travis-ci.com/user/caching/#Arbitrary-directories
+  if (!travis.cache) {
+    travis.cache = {};
+  }
+  if (!travis.cache.directories) {
+    travis.cache.directories = ['node_modules'];
+  }
+  const cachedirs = travis.cache.directories;
+  if (!cachedirs.includes('node_modules')) {
+    cachedirs.push('node_modules');
   }
 
-  // Shape travis env to object with global and/or matrix arrays
+  // Shape Travis ENV to object with global and/or matrix arrays
   let te = travis.env;
   if (!te) {
     te = {global: []};
   } else if (Array.isArray(te)) {
     te = {global: <string[]>te};
   }
-
-  // C11 dependencies for node >= 4
-  // unneeded for trusty
-  // https://docs.travis-ci.com/user/languages/javascript-with-nodejs#Node.js-v4-(or-io.js-v3)-compiler-requirements
-  const C11Source = 'ubuntu-toolchain-r-test';
-  const C11Package = 'g++-4.8';
-  const C11Env = 'CXX=g++-4.8';
-
-  // remove C11 config (not needed in trusty dist)
-  if (ta.apt) {
-    ta.apt.sources = ta.apt.sources!.filter(s => s !== C11Source);
-    ta.apt.packages = ta.apt.packages!.filter(p => p !== C11Package);
-  }
-  te.global = te.global!.filter(e => e !== C11Env);
-
   travis.env = te;
 
   const updatedTravisConfigBlob = yaml.safeDump(travis);
 
   if (travisConfigBlob !== updatedTravisConfigBlob) {
-    // changes to travis should always need review
+    // Changes to Travis should always need review
     element.needsReview = true;
     fs.writeFileSync(
         travisConfigPath, updatedTravisConfigBlob, {encoding: 'utf8'});
@@ -153,8 +139,4 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   }
 }
 
-register({
-  name: 'travis',
-  pass: cleanupTravisConfig,
-  runsByDefault: true,
-});
+register({name: 'travis', pass: cleanupTravisConfig, runsByDefault: true});
