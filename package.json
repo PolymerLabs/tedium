@@ -25,12 +25,17 @@
     "url": "https://github.com/PolymerLabs/tedium/issues"
   },
   "homepage": "https://github.com/PolymerLabs/tedium#readme",
+  "engines": {
+    "node": ">=8.0.0"
+  },
   "dependencies": {
     "@types/del": "^3.0.0",
+    "@types/fs-extra": "^5.0.0",
     "@types/glob": "^5.0.29",
     "@types/js-yaml": "^3.10.1",
     "@types/marked": "0.0.27",
-    "@types/node": "^4.2.23",
+    "@types/node": "^8.0.0",
+    "@types/nodegit": "^0.18.5",
     "@types/progress": "^1.1.27",
     "@types/semver": "^5.4.0",
     "command-line-args": "^2.0.4",
@@ -39,6 +44,7 @@
     "escodegen": "^1.7.0",
     "espree": "^3.5.2",
     "estree-walker": "^0.2.0",
+    "fs-extra": "^5.0.0",
     "github": "^0.2.0",
     "glob": "^7.0.0",
     "highlight.js": "^9.1.0",
