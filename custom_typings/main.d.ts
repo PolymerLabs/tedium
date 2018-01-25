@@ -9,3 +9,5 @@
 /// <reference path="./pad.d.ts" />
 /// <reference path="./promisify-node.d.ts" />
 /// <reference path="./strip-json-comments.d.ts" />
+/// <reference path="./npm-config.d.ts" />
+/// <reference path="./bower-config.d.ts" />
