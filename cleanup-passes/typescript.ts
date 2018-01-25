@@ -41,10 +41,7 @@ const execFilePromise = promisify(execFile);
  */
 async function typescriptPass(element: ElementRepo): Promise<void> {
   const packageJsonPath = path.join(element.dir, 'package.json');
-  let packageJson: {
-    scripts?: {[key: string]: string},
-    devDependencies?: {[key: string]: string},
-  };
+  let packageJson: NpmConfig;
   try {
     packageJson = await fse.readJson(packageJsonPath);
   } catch {
@@ -73,10 +70,15 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
   }
 
   const execOpts = {cwd: element.dir};
+
+  // Install the generator and its dependencies.
   await execFilePromise('npm', ['install'], execOpts);
-  // We also have to bower install because the generator needs to see the
-  // dependencies.
+
+  // We also have to bower install because the generator wants to actually
+  // resolve dependencies in the HTML import graph.
   await execFilePromise('bower', ['install'], execOpts);
+
+  // Run the generator (using the script we added above).
   await execFilePromise('npm', ['run', npmScriptName], execOpts);
 
   let doCommit = false;
@@ -93,6 +95,8 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
       // If all we did was update the package lock, don't bother with the
       // commit. But do include it if we changed something else.
       commitFiles.push(filepath);
+    } else {
+      console.log(`Unexpected changed file: ${filepath}`);
     }
   }
 
