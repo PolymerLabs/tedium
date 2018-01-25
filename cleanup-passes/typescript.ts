@@ -24,7 +24,7 @@ import {ElementRepo} from '../element-repo';
 import {makeCommit} from './util';
 
 const generatorPackageName = '@polymer/gen-typescript-declarations';
-const generatorSemver = '^0.3.6';
+const generatorSemver = '^1.0.0';
 const npmScriptName = 'update-types';
 const npmScriptCommand =
     'rm -f *.d.ts **/*.d.ts && gen-typescript-declarations --outDir .';
