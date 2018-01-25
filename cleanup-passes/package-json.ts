@@ -41,7 +41,7 @@ async function generatePackageJson(element: ElementRepo): Promise<void> {
     // This is the style of name we're using for the 3.0 elements on NPM. Might
     // as well be consistent, even though this is a 2.0 package.json.
     name: `@polymer/${bowerConfig.name}`,
-    //
+
     // Make sure we don't accidentally publish this repo.
     private: true,
 
