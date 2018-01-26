@@ -63,7 +63,10 @@ async function generatePackageJson(element: ElementRepo): Promise<void> {
     gitIgnore = (await fse.readFile(gitIgnorePath)).toString();
   }
   if (!gitIgnore.includes('node_modules')) {
-    gitIgnore += '\nnode_modules\n';
+    if (!gitIgnore.endsWith('\n')) {
+      gitIgnore += '\n';
+    }
+    gitIgnore += 'node_modules\n';
     await fse.writeFile(gitIgnorePath, gitIgnore);
   }
 
