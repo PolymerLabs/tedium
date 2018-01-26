@@ -27,7 +27,7 @@ const generatorPackageName = '@polymer/gen-typescript-declarations';
 const generatorSemver = '^1.0.0';
 const npmScriptName = 'update-types';
 const npmScriptCommand =
-    'rm -f *.d.ts **/*.d.ts && gen-typescript-declarations --outDir .';
+    'rm -f *.d.ts **/*.d.ts && bower install && gen-typescript-declarations --outDir .';
 
 const execFilePromise = promisify(execFile);
 
@@ -45,8 +45,7 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
   try {
     packageJson = await fse.readJson(packageJsonPath);
   } catch {
-    throw new Error(
-        `Missing or invalid package.json for element: ${element.ghRepo.name}`);
+    throw new Error(`${element.ghRepo.name}: Missing or invalid package.json.`);
   }
 
   if (packageJson.devDependencies === undefined) {
@@ -59,6 +58,12 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
   let writePackageJson = false;
   if (packageJson.devDependencies[generatorPackageName] !== generatorSemver) {
     packageJson.devDependencies[generatorPackageName] = generatorSemver;
+    writePackageJson = true;
+  }
+  // The update-types script depends on bower because the generator needs to
+  // actually resolve dependencies in the HTML import graph.
+  if (packageJson.devDependencies['bower'] === undefined) {
+    packageJson.devDependencies['bower'] = '^1.8.0';
     writePackageJson = true;
   }
   if (packageJson.scripts[npmScriptName] !== npmScriptCommand) {
@@ -74,35 +79,35 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
   // Install the generator and its dependencies.
   await execFilePromise('npm', ['install'], execOpts);
 
-  // We also have to bower install because the generator wants to actually
-  // resolve dependencies in the HTML import graph.
-  await execFilePromise('bower', ['install'], execOpts);
 
   // Run the generator (using the script we added above).
   await execFilePromise('npm', ['run', npmScriptName], execOpts);
 
-  let doCommit = false;
+  let changedTypings = false;
   const commitFiles = [];
   for (const changedFile of await element.repo.getStatus()) {
     const filepath = changedFile.path();
     if (filepath.endsWith('.d.ts')) {
-      doCommit = true;
+      changedTypings = true;
       commitFiles.push(filepath);
     } else if (filepath === 'package.json') {
-      doCommit = true;
       commitFiles.push(filepath);
     } else if (filepath === 'package-lock.json') {
       // If all we did was update the package lock, don't bother with the
       // commit. But do include it if we changed something else.
       commitFiles.push(filepath);
     } else {
-      console.log(`Unexpected changed file: ${filepath}`);
+      console.log(
+          `${element.ghRepo.name}: Unexpected changed file: ${filepath}`);
     }
   }
 
-  if (doCommit) {
+  if (changedTypings) {
     await makeCommit(
         element, commitFiles, 'Update and/or configure type declarations.');
+
+  } else {
+    console.log(`${element.ghRepo.name}: No typings changed.`);
   }
 }
 
