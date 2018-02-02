@@ -24,7 +24,7 @@ import {ElementRepo} from '../element-repo';
 import {makeCommit} from './util';
 
 const generatorPackageName = '@polymer/gen-typescript-declarations';
-const generatorSemver = '^1.0.0';
+const generatorSemver = '^1.0.1';
 const npmScriptName = 'update-types';
 const npmScriptCommand =
     'rm -f *.d.ts **/*.d.ts && bower install && gen-typescript-declarations --outDir .';
@@ -78,7 +78,6 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
 
   // Install the generator and its dependencies.
   await execFilePromise('npm', ['install'], execOpts);
-
 
   // Run the generator (using the script we added above).
   await execFilePromise('npm', ['run', npmScriptName], execOpts);
