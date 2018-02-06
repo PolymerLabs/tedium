@@ -115,14 +115,13 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
   // Run the generator (using the script we added above).
   await execFilePromise('npm', ['run', npmScriptName], execOpts);
 
-  let changedTypings = false;
+  let doCommit = false;
   const commitFiles = [];
   for (const changedFile of await element.repo.getStatus()) {
     const filepath = changedFile.path();
-    if (filepath.endsWith('.d.ts')) {
-      changedTypings = true;
-      commitFiles.push(filepath);
-    } else if (filepath === 'package.json') {
+    if (filepath.endsWith('.d.ts') || filepath === 'package.json' ||
+        filepath === '.travis.yml') {
+      doCommit = true;
       commitFiles.push(filepath);
     } else if (filepath === 'package-lock.json') {
       // If all we did was update the package lock, don't bother with the
@@ -134,7 +133,7 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
     }
   }
 
-  if (changedTypings) {
+  if (doCommit) {
     await makeCommit(
         element, commitFiles, 'Update and/or configure type declarations.');
 
