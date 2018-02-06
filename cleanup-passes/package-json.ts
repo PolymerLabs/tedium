@@ -52,7 +52,7 @@ async function generatePackageJson(element: ElementRepo): Promise<void> {
     // npm warns if any of these fields aren't set.
     description: bowerConfig.description,
     repository: bowerConfig.repository,
-    license: bowerConfig.license,
+    license: 'BSD-3-Clause'
   };
 
   // Since we're an NPM package now, we might get some dependencies installed,
