@@ -309,9 +309,9 @@ const rateLimit = (function() {
  * returns a promise of the nodegit Branch object for the new branch.
  */
 async function checkoutNewBranch(
-    repo: nodegit.Repository, branchName: string): Promise<void> {
+    repo: nodegit.Repository, branchName: string): Promise<nodegit.Reference> {
   const commit = await repo.getHeadCommit();
-  const branch = await nodegit.Branch.create(repo, branchName, commit, false);
+  const branch = await nodegit.Branch.create(repo, branchName, commit, 0);
   return repo.checkoutBranch(branch);
 }
 
@@ -580,7 +580,7 @@ async function _main(elements: ElementRepo[]) {
         if (ref) {
           const commit = await repo.getReferenceCommit(ref);
           const branch =
-              await nodegit.Branch.create(repo, opts.branchToFix, commit, true);
+              await nodegit.Branch.create(repo, opts.branchToFix, commit, 1);
           await repo.checkoutBranch(branch);
         }
       }

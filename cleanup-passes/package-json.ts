@@ -12,146 +12,70 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-'use strict';
-
-import * as fs from 'fs';
+import * as fse from 'fs-extra';
 import * as path from 'path';
 
 import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo';
 import {makeCommit} from './util';
 
-const dependencyMap = {
-  'webcomponentsjs': 'webcomponents.js',
-  'web-component-tester': 'web-component-tester',
-  'polymer': '@polymer/polymer',
-  'chartjs': 'chart.js',
-  'hydrolysis': 'hydrolysis',
-  'dom5': 'dom5',
-  'page': 'page',
-  'prism': 'prismjs-package',
-  'd3': 'd3',
-  'marked': 'marked',
-  'web-animations-js': 'web-animations-js',
-  'sw-toolbox': 'sw-toolbox',
-  'fetch': 'whatwg-fetch',
-  'promise-polyfill': '@polymer/promise-polyfill',
-  'app-layout': '@polymer/app-layout',
-};
-
-function getNpmName(name: string, version: string) {
-  version = version.toLowerCase();
-  if (dependencyMap[name]) {
-    return dependencyMap[name];
-  }
-  if (version.startsWith('polymerelements/')) {
-    return `@polymer/${name}`;
-  }
-  throw new Error(`no npm name mapping found for ${name}:${version}`);
-}
-
-// TODO(justinfagnani): remove all special case versions
-const polymerVersion = '1.2.5-npm-test.2';
-const elementVersion = '0.0.3';
-const promisePolyfillVersion = '1.0.0-npm-test.2';
-
-function getPackageVersion(name: string, _version: string) {
-  if (name === 'polymer') {
-    return polymerVersion;
-  }
-  // I accidentally published iron-ajax with a dep on promise-polyfill 1.0.0
-  if (name === 'promise-polyfill') {
-    return promisePolyfillVersion;
-  }
-  return elementVersion;
-}
-
-function getDependencyVersion(name: string, version: string) {
-  version = version.toLowerCase();
-  if (name === 'polymer') {
-    return '^' + polymerVersion;
-  }
-  // I accidentally published iron-ajax with a dep on promise-polyfill 1.0.0
-  if (version.startsWith('polymerlabs/promise-polyfill')) {
-    return '^' + promisePolyfillVersion;
-  }
-  if ((version.startsWith('polymerelements/') ||
-       version.startsWith('polymerlabs/') || version.startsWith('polymer/')) &&
-      !dependencyMap[name]) {
-    return '^' + elementVersion;
-  }
-  return version.substring(version.indexOf('#') + 1);
-}
-
 /**
- * Generate or update package.json from bower.json
+ * Generate a super minimal package.json from an existing bower.json, and adds
+ * `node_modules` to `.gitignore` if needed. Does nothing if there's already a
+ * package.json.
  */
 async function generatePackageJson(element: ElementRepo): Promise<void> {
-  const writeJson = (filePath: string, config: Object) => {
-    const fullPath = path.join(element.dir, filePath);
-    fs.writeFileSync(fullPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
+  const npmConfigPath = path.join(element.dir, 'package.json');
+  if (await fse.pathExists(npmConfigPath)) {
+    console.log(`${element.ghRepo.name} already has a package.json, skipping.`);
+    return;
+  }
+
+  const bowerConfigPath = path.join(element.dir, 'bower.json');
+  if (!await fse.pathExists(bowerConfigPath)) {
+    throw new Error(`${element.ghRepo.name} has no bower.json.`);
+  }
+  const bowerConfig: BowerConfig = await fse.readJson(bowerConfigPath);
+
+  const npmConfig: NpmConfig = {
+    // This is the style of name we're using for the 3.0 elements on NPM. Might
+    // as well be consistent, even though this is a 2.0 package.json.
+    name: `@polymer/${bowerConfig.name}`,
+
+    // Make sure we don't accidentally publish this repo.
+    private: true,
+
+    // Note that we exclude version because the bower version might not be well
+    // maintained, plus it won't get updated here going forward if we do more
+    // releases.
+
+    // npm warns if any of these fields aren't set.
+    description: bowerConfig.description,
+    repository: bowerConfig.repository,
+    license: 'BSD-3-Clause'
   };
 
-  const readJson = (filePath: string) => {
-    const fullPath = path.join(element.dir, filePath);
-    if (fs.existsSync(fullPath)) {
-      return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+  // Since we're an NPM package now, we might get some dependencies installed,
+  // which we don't want to commit.
+  const gitIgnorePath = path.join(element.dir, '.gitignore');
+  let gitIgnore = '';
+  if (await fse.pathExists(gitIgnorePath)) {
+    gitIgnore = (await fse.readFile(gitIgnorePath)).toString();
+  }
+  if (!gitIgnore.includes('node_modules')) {
+    if (!gitIgnore.endsWith('\n')) {
+      gitIgnore += '\n';
     }
-    return {};
-  };
-
-  const bowerConfig: any = readJson('bower.json');
-  const npmConfig: any = readJson('package.json');
-
-  if (!bowerConfig) {
-    throw new Error('bower.json not found');
+    gitIgnore += 'node_modules\n';
+    await fse.writeFile(gitIgnorePath, gitIgnore);
   }
 
-  // copies a property from bower.json to package.json
-  // bower.json is the source of truth
-  const copyProperty = (name: string, bowerName?: string) => npmConfig[name] =
-      bowerConfig[bowerName || name] || npmConfig[name];
+  await fse.writeJson(npmConfigPath, npmConfig, {spaces: 2});
 
-  npmConfig['name'] = `@polymer/${bowerConfig['name']}`;
-  npmConfig['version'] =
-      getPackageVersion(bowerConfig['name'], bowerConfig['version']);
-
-  // properties that can be directly copied
-  ['description', 'repository', 'keywords'].forEach((s) => copyProperty(s));
-
-  // authors => contributors
-  // https://docs.npmjs.com/files/package.json#people-fields-author-contributors
-  copyProperty('contributors', 'authors');
-
-  // make it public
-  delete npmConfig['private'];
-
-  // https://docs.npmjs.com/files/package.json#license
-  npmConfig['license'] = 'BSD-3-Clause';
-
-  const npmDependencies = npmConfig['dependencies'] =
-      npmConfig['dependencies'] || {};
-  const bowerDependencies = bowerConfig['dependencies'] || {};
-
-  const npmDevDependencies = npmConfig['devDependencies'] =
-      npmConfig['devDependencies'] || {};
-  const bowerDevDependencies = bowerConfig['devDependencies'] || {};
-
-  for (const bowerDep in bowerDependencies) {
-    const bowerVersion = bowerDependencies[bowerDep];
-    const npmDep = getNpmName(bowerDep, bowerVersion);
-    npmDependencies[npmDep] = getDependencyVersion(bowerDep, bowerVersion);
-  }
-
-  for (const bowerDep in bowerDevDependencies) {
-    const bowerVersion = bowerDevDependencies[bowerDep];
-    const npmDep = getNpmName(bowerDep, bowerVersion);
-    npmDevDependencies[npmDep] = getDependencyVersion(bowerDep, bowerVersion);
-  }
-
-  writeJson('package.json', npmConfig);
-
-  await makeCommit(element, ['package.json'], 'Generate/update package.json');
+  await makeCommit(
+      element,
+      ['package.json', '.gitignore'],
+      'Generate minimal package.json from bower.json');
 }
 
 register({

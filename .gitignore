@@ -5,4 +5,5 @@ repos
 *.js
 *.js.map
 *.d.ts
+!custom_typings/*.d.ts
 typings
