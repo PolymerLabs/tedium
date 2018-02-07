@@ -96,7 +96,7 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
         'git diff --exit-code || ' +
         // Show an error message in the Travis log (escape code makes it red).
         '(echo -e \'\\n\\033[31mERROR:\\033[0m Typings are stale. ' +
-        'Please run "npm run update-types".\' &&' +
+        'Please run "npm run update-types".\' && ' +
         // The echo command will succeed, so return a non-zero exit code again
         // here so that Travis errors.
         'false)';
