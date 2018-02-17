@@ -64,10 +64,9 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
     throw new Error(`${element.ghRepo.name}: Missing or invalid package.json.`);
   }
 
-  let majorVersionBump = false;
-  let updatedNpmScript = false;
-  let updatedTravis = false;
-  let updatedTypes = false;
+  // There are some changes we might write in this script that aren't important
+  // enough to make a commit for (e.g. just updating the package-lock.json).
+  let doCommit = false;
 
   if (packageJson.devDependencies === undefined) {
     packageJson.devDependencies = {};
@@ -80,7 +79,7 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
   const oldGeneratorRange = packageJson.devDependencies[generatorPackageName];
   if (oldGeneratorRange === undefined ||
       !semver.satisfies(newGeneratorVersion, oldGeneratorRange)) {
-    majorVersionBump = true;
+    doCommit = true;
   }
   packageJson.devDependencies[generatorPackageName] = '^' + newGeneratorVersion;
 
@@ -92,7 +91,7 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
 
   if (packageJson.scripts[npmScriptName] !== npmScriptCommand) {
     packageJson.scripts[npmScriptName] = npmScriptCommand;
-    updatedNpmScript = true;
+    doCommit = true;
   }
 
   await fse.writeJson(packageJsonPath, packageJson, {spaces: 2});
@@ -145,21 +144,18 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
   const commitFiles = [];
   for (const changedFile of await element.repo.getStatus()) {
     const filepath = changedFile.path();
-    if (filepath.endsWith('.d.ts')) {
-      updatedTypes = true;
-    } else if (filepath === '.travis.yml') {
-      updatedTravis = true;
+    if (filepath.endsWith('.d.ts') || filepath === '.travis.yml') {
+      doCommit = true;
     } else if (
         filepath === 'package.json' || filepath === 'package-lock.json') {
     } else {
-      console.log(
+      throw new Error(
           `${element.ghRepo.name}: Unexpected changed file: ${filepath}`);
-      continue;
     }
     commitFiles.push(filepath);
   }
 
-  if (updatedTypes || majorVersionBump || updatedNpmScript || updatedTravis) {
+  if (doCommit) {
     await makeCommit(
         element, commitFiles, 'Update and/or configure type declarations.');
 
