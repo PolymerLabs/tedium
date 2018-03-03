@@ -7,3 +7,4 @@ repos
 *.d.ts
 !custom_typings/*.d.ts
 typings
+sauce-credentials.json

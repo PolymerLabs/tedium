@@ -11,3 +11,4 @@
 /// <reference path="./strip-json-comments.d.ts" />
 /// <reference path="./npm-config.d.ts" />
 /// <reference path="./bower-config.d.ts" />
+/// <reference path="./travis-encrypt.d.ts" />
