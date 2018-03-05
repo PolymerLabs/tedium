@@ -27,7 +27,7 @@ type WCTConfig = {
   plugins?: {local?: {browserOptions?: {[browser: string]: string[];}}}
 };
 
-// disable chrome sandbox due to ravis-ci/travis-ci#8836
+// disable chrome sandbox due to travis-ci/travis-ci#8836
 const ChromeSandbox = ['no-sandbox'];
 
 const ChromeHeadlessConfig = [

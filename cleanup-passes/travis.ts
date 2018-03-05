@@ -20,15 +20,15 @@ import * as path from 'path';
 import * as travisEncrypt from 'travis-encrypt';
 import * as promisify from 'promisify-node';
 
-import { register } from '../cleanup-pass';
-import { ElementRepo } from '../element-repo';
-import { existsSync, makeCommit, arraysEqual } from './util';
+import {register} from '../cleanup-pass';
+import {ElementRepo} from '../element-repo';
+import {existsSync, makeCommit, arraysEqual} from './util';
 
 type SecureEnv = {
   secure: string;
 };
 
-type GlobalEnvKey = string | SecureEnv;
+type GlobalEnvKey = string|SecureEnv;
 
 type TravisEnv = {
   global?: GlobalEnvKey[];
@@ -39,17 +39,17 @@ interface TravisConfig {
   before_script?: string[];
   install?: string[];
   addons?: {
-    firefox?: string | number;
+    firefox?: string|number;
     chrome?: string | number;
     sauce_connect?: boolean;
-    apt?: { packages?: string[]; sources?: string[]; };
+    apt?: {packages?: string[]; sources?: string[];};
   };
   script?: string[];
   dist?: string;
-  sudo?: 'false' | 'required';
+  sudo?: 'false'|'required';
   env?: TravisEnv;
-  node_js?: string | number | string[];
-  cache?: { directories?: string[]; };
+  node_js?: string|number|string[];
+  cache?: {directories?: string[];};
 }
 
 type SauceCredentials = {
@@ -70,7 +70,7 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   // Override install script for all elements
   const install =
-    [`npm install -g ${tools.join(' ')}`, 'polymer install --variants'];
+      [`npm install -g ${tools.join(' ')}`, 'polymer install --variants'];
   if (!Array.isArray(travis.install) || !arraysEqual(travis.install, install)) {
     travis.install = install;
   }
@@ -78,7 +78,7 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   // Add polymer lint to all elements
   const beforeScript = ['polymer lint'];
   if (!Array.isArray(travis.before_script) ||
-    !arraysEqual(travis.before_script, beforeScript)) {
+      !arraysEqual(travis.before_script, beforeScript)) {
     travis.before_script = beforeScript;
   }
 
@@ -137,16 +137,16 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   // Shape Travis ENV to object with global and/or matrix arrays
   let te = travis.env;
   if (!te) {
-    te = { global: [] };
+    te = {global: []};
   } else if (Array.isArray(te)) {
-    te = { global: <GlobalEnvKey[]>te };
+    te = {global: <GlobalEnvKey[]>te};
   }
   if (!te.global) {
     te.global = [];
   }
 
   const sauceCredentials: SauceCredentials =
-    JSON.parse(fs.readFileSync('sauce-credentials.json').toString());
+      JSON.parse(fs.readFileSync('sauce-credentials.json').toString());
 
   // Set up sauce keys
   // remove secure keys
@@ -155,11 +155,11 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   const repoName = `${element.ghRepo.owner.login}/${element.ghRepo.name}`;
   const encryptor = promisify(travisEncrypt);
   const username = await encryptor(
-    { repo: repoName, data: `SAUCE_USERNAME=${sauceCredentials.username}` });
+      {repo: repoName, data: `SAUCE_USERNAME=${sauceCredentials.username}`});
   const accessKey = await encryptor(
-    { repo: repoName, data: `SAUCE_ACCESS_KEY=${sauceCredentials.accessKey}` });
-  global.push({ secure: username });
-  global.push({ secure: accessKey });
+      {repo: repoName, data: `SAUCE_ACCESS_KEY=${sauceCredentials.accessKey}`});
+  global.push({secure: username});
+  global.push({secure: accessKey});
   te.global = global;
 
   travis.env = te;
@@ -170,9 +170,9 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
     // Changes to Travis should always need review
     element.needsReview = true;
     fs.writeFileSync(
-      travisConfigPath, updatedTravisConfigBlob, { encoding: 'utf8' });
+        travisConfigPath, updatedTravisConfigBlob, {encoding: 'utf8'});
     await makeCommit(element, ['.travis.yml'], 'Update travis config');
   }
 }
 
-register({ name: 'travis', pass: cleanupTravisConfig, runsByDefault: true });
+register({name: 'travis', pass: cleanupTravisConfig, runsByDefault: true});
