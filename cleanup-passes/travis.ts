@@ -17,13 +17,21 @@
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
+import * as travisEncrypt from 'travis-encrypt';
+import * as promisify from 'promisify-node';
 
 import {register} from '../cleanup-pass';
 import {ElementRepo} from '../element-repo';
 import {existsSync, makeCommit, arraysEqual} from './util';
 
+type SecureEnv = {
+  secure: string;
+};
+
+type GlobalEnvKey = string|SecureEnv;
+
 type TravisEnv = {
-  global?: string[];
+  global?: GlobalEnvKey[];
   matrix?: string[];
 };
 
@@ -43,6 +51,10 @@ interface TravisConfig {
   node_js?: string|number|string[];
   cache?: {directories?: string[];};
 }
+
+type SauceCredentials = {
+  username: string; accessKey: string;
+};
 
 async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   const travisConfigPath = path.join(element.dir, '.travis.yml');
@@ -83,7 +95,7 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   // Ensure all variants are being tested across all browsers
   const script = [
-    'xvfb-run polymer test',
+    'polymer test',
     '>-\nif [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then polymer test -s \'default\';\nfi'
   ];
   if (!Array.isArray(travis.script) || !arraysEqual(travis.script, script)) {
@@ -105,6 +117,9 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   if (ta.sauce_connect !== undefined) {
     delete ta.sauce_connect;
   }
+  if (ta.apt) {
+    delete ta.apt;
+  }
 
   // Cache node_modules
   // https://docs.travis-ci.com/user/caching/#Arbitrary-directories
@@ -124,8 +139,29 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
   if (!te) {
     te = {global: []};
   } else if (Array.isArray(te)) {
-    te = {global: <string[]>te};
+    te = {global: <GlobalEnvKey[]>te};
   }
+  if (!te.global) {
+    te.global = [];
+  }
+
+  const sauceCredentials: SauceCredentials =
+      JSON.parse(fs.readFileSync('sauce-credentials.json').toString());
+
+  // Set up sauce keys
+  // remove secure keys
+  const global = te.global.filter((g) => g instanceof String);
+  // encrypt new sauce keys
+  const repoName = `${element.ghRepo.owner.login}/${element.ghRepo.name}`;
+  const encryptor = promisify(travisEncrypt);
+  const username = await encryptor(
+      {repo: repoName, data: `SAUCE_USERNAME=${sauceCredentials.username}`});
+  const accessKey = await encryptor(
+      {repo: repoName, data: `SAUCE_ACCESS_KEY=${sauceCredentials.accessKey}`});
+  global.push({secure: username});
+  global.push({secure: accessKey});
+  te.global = global;
+
   travis.env = te;
 
   const updatedTravisConfigBlob = yaml.safeDump(travis);

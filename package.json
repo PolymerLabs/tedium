@@ -63,6 +63,7 @@
   },
   "devDependencies": {
     "clang-format": "^1.1.1",
+    "travis-encrypt": "^2.1.1",
     "tslint": "^4.5.1",
     "typescript": "^2.6.2",
     "watch": "^0.17.1"
