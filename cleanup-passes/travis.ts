@@ -64,7 +64,7 @@ async function cleanupTravisConfig(element: ElementRepo): Promise<void> {
 
   const travisConfigBlob = fs.readFileSync(travisConfigPath, 'utf8');
 
-  let travis: TravisConfig = yaml.safeLoad(travisConfigBlob);
+  let travis: TravisConfig = yaml.safeLoad(travisConfigBlob) || {};
 
   const tools = ['polymer-cli'];
 
