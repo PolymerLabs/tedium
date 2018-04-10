@@ -7,4 +7,5 @@ import './travis';
 import './issue-template';
 import './license-header';
 import './typescript';
+import './formatter';
 import './wct-conf';
