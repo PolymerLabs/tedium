@@ -64,15 +64,14 @@ const cli = cliArgs([
       }
       throw new Error(`invalid max changes, expected an integer: ${x}`);
     },
-    alias: 'c',
-    description: 'The maximum number of repos to push. Default: 0',
-    defaultValue: 0
+    description: 'The maximum number of repos to push. Default: 1',
+    defaultValue: 1
   },
   {
     name: 'repo',
     type: (s) => {
       if (!s) {
-        throw new Error('Value expected for --repo|-r flag');
+        throw new Error('Value expected for --repo flag');
       }
       const parts = s.split('/');
       if (parts.length !== 2) {
@@ -82,9 +81,7 @@ const cli = cliArgs([
     },
     defaultValue: [],
     multiple: true,
-    alias: 'r',
-    description:
-        'Explicit repos to process. Specifying explicit repos will disable running on the implicit set of repos for the user.'
+    description: 'Required. Repos to process (org/repo)'
   },
   {
     name: 'pass',
@@ -97,41 +94,45 @@ const cli = cliArgs([
     },
     defaultValue: [],
     description:
-        `Cleanup passes to run. If this flag is used then only the given passes will run, and they will run even if they're disabled by default. Pass names: ${
-            passNames.join(', ')}`
+        `Required. Cleanup passes to run. Pass names: ${passNames.join(', ')}`
   },
   {
-    name: 'branchToFix',
-    alias: 'b',
-    description:
-        `The branch to apply changes to. Repos without a branch of this name will be skipped.`,
+    name: 'baseBranch',
+    description: 'The branch to clone and apply changes to.',
     type: String,
     defaultValue: 'master'
   },
   {
-    name: 'noProgress',
-    description: `If true, does not display a progress bar while it works.`,
-    type: Boolean,
-    defaultValue: false
-  },
-  {
-    name: 'forceReview',
-    description:
-        `If true, all changes will go through review, even if tedium thinks they're safe and boring.`,
-    type: Boolean,
-    defaultValue: false
-  },
-  {
-    name: 'prBranchName',
-    description:
-        'When sending up a PR, push to this branch and then make a PR from it.',
+    name: 'workBranch',
+    description: 'The branch to commit changes to, creating if needed.',
     type: String,
-    defaultValue: 'tedium-change'
+    defaultValue: 'tedium'
+  },
+  {
+    name: 'noPr',
+    description: 'If set, a PR will not be created. Normally, a PR would be ' +
+        'created which merges --workBranch into --baseBranch.',
+    type: Boolean,
+    defaultValue: false
+  },
+  {
+    name: 'noProgress',
+    description: `If set, does not display a progress bar while it works.`,
+    type: Boolean,
+    defaultValue: false
+  },
+  {
+    name: 'prTitle',
+    description: 'The title to use for created PRs.',
+    type: String,
+    defaultValue: 'Tedium automatic changes.',
   },
   {
     name: 'prAssignee',
     description:
-        'When sending up a PR, assign it to this person to review. If not given, the asignee will be inferred from the github token (i.e. it will be assigned to YOU!)',
+        'When sending up a PR, assign it to this person to review. If not ' +
+        'given, the asignee will be inferred from the github token (i.e. it ' +
+        'will be assigned to YOU!)',
     type: String,
     defaultValue: undefined,
   }
@@ -145,10 +146,12 @@ interface Options {
   maxChanges: number;
   repo: UserRepo[];
   pass: string[];
-  branchToFix: string;
+  baseBranch: string;
+  workBranch: string;
   noProgress: boolean;
-  forceReview: boolean;
+  noPr: boolean;
   prAssignee: string|undefined;
+  prTitle: string;
 }
 const opts: Options = cli.parse();
 
@@ -158,6 +161,15 @@ if (opts.help) {
     title: 'tedium'
   }));
   process.exit(0);
+}
+
+if (opts.pass.length === 0) {
+  throw new Error('At least one --pass is required.');
+}
+
+if (!opts.noPr && opts.baseBranch === opts.workBranch) {
+  throw new Error(
+      'Can\'t make a PR unless --baseBranch and --workBranch are different.');
 }
 
 class NoopBar {
@@ -318,8 +330,8 @@ async function checkoutNewBranch(
 let elementsPushed = 0;
 let pushesDenied = 0;
 /**
- * Will return true at most opts.max_changes times. After that it will always
- * return false.
+ * Will return true at most opts.max_changes times. After that it will
+ * always return false.
  *
  * Counts how many times both happen.
  * TODO(rictic): this should live in a class rather than as globals.
@@ -334,16 +346,16 @@ function pushIsAllowed() {
 }
 
 /**
- * Will push the given element at the given branch name up to github if needed.
+ * Will push the given element at the given branch name up to github if
+ * needed.
  *
  * Depending on whether the element's changes need review, it will either
- * push directly to master, or push to a branch with the same name as the local
- * branch, then create a PR and assign it to `assignee`.
+ * push directly to master, or push to a branch with the same name as the
+ * local branch, then create a PR and assign it to `assignee`.
  *
  * Returns a promise.
  */
-async function pushChanges(
-    element: ElementRepo, localBranchName: string, assignee: string) {
+async function pushChanges(element: ElementRepo, assignee: string) {
   if (!element.dirty) {
     return;
   }
@@ -351,17 +363,11 @@ async function pushChanges(
     element.pushStatus = PushStatus.denied;
     return;
   }
-  let remoteBranchName = opts.branchToFix;
-  const makePr = opts.forceReview || element.needsReview;
-  if (makePr) {
-    remoteBranchName = localBranchName;
-  }
-
   try {
-    await pushBranch(element, localBranchName, remoteBranchName);
-    if (makePr) {
+    await pushBranch(element, opts.workBranch, opts.workBranch);
+    if (!opts.noPr) {
       await createPullRequest(
-          element, localBranchName, opts.branchToFix, [assignee]);
+          element, opts.workBranch, opts.baseBranch, [assignee]);
     }
   } catch (e) {
     element.pushStatus = PushStatus.failed;
@@ -376,7 +382,7 @@ async function pushChanges(
  *
  * returns a promise
  */
-async function pushBranch(
+export async function pushBranch(
     element: ElementRepo, localBranchName: string, remoteBranchName: string) {
   const remote = await element.repo.getRemote('origin');
 
@@ -393,15 +399,16 @@ async function pushBranch(
 
 /**
  * Creates a pull request to merge the branch identified by `head` into the
- * branch identified by `base`, then assign the new pull request to `asignee`.
+ * branch identified by `base`, then assign the new pull request to
+ * `assignee`.
  */
-async function createPullRequest(
+export async function createPullRequest(
     element: ElementRepo, head: string, base: string, assignees: string[]) {
   const user = element.ghRepo.owner.login;
   const repo = element.ghRepo.name;
   await rateLimit(5000);
   const pr = await promisify(github.pullRequests.create)({
-    title: 'Automatic cleanup!',
+    title: opts.prTitle,
     user,
     repo,
     head,
@@ -494,7 +501,8 @@ async function analyzeRepos() {
 
   // This code is conceptually simple, it's only complex due to ordering
   // and the progress bar. Basically we call analyzer.metadataTree on each
-  // html file in sequence, then finally call analyzer.annotate() and return.
+  // html file in sequence, then finally call analyzer.annotate() and
+  // return.
   const analyzer =
       await hydrolysis.Analyzer.analyze('repos/polymer/polymer.html', {filter});
 
@@ -567,25 +575,8 @@ async function _main(elements: ElementRepo[]) {
         repo = await nodegit.Repository.open(dir);
       } else {
         await rateLimit(100);
-        repo = await nodegit.Clone.clone(ghRepo.clone_url, dir, undefined);
-      }
-      let skipThisElement = false;
-      if (opts.branchToFix !== 'master') {
-        let ref = undefined;
-        try {
-          ref = await repo.getBranch(`refs/remotes/origin/${opts.branchToFix}`);
-        } catch (_) {
-          skipThisElement = true;
-        }
-        if (ref) {
-          const commit = await repo.getReferenceCommit(ref);
-          const branch =
-              await nodegit.Branch.create(repo, opts.branchToFix, commit, 1);
-          await repo.checkoutBranch(branch);
-        }
-      }
-      if (skipThisElement) {
-        return undefined;
+        repo = await nodegit.Clone.clone(
+            ghRepo.clone_url, dir, {checkoutBranch: opts.baseBranch});
       }
       return new ElementRepo({repo, dir, ghRepo, analyzer: null});
     })());
@@ -613,24 +604,21 @@ async function _main(elements: ElementRepo[]) {
     'repos/polymer',
   ]);
 
-  const branchName = 'auto-cleanup';
   const cleanupProgress =
       standardProgressBar('Applying transforms...', elements.length);
   for (const element of elements) {
-    let passesToRun: string[]|undefined = undefined;
-    if (opts.pass.length > 0) {
-      passesToRun = opts.pass;
-    }
     if (excludes.has(element.dir)) {
       cleanupProgress.tick();
       continue;
     }
 
     try {
-      await checkoutNewBranch(element.repo, branchName);
+      if (opts.baseBranch !== opts.workBranch) {
+        await checkoutNewBranch(element.repo, opts.workBranch);
+      }
       await rateLimit(0);
-      await cleanup(element, config.passes || {}, passesToRun);
-      await pushChanges(element, branchName, opts.prAssignee || user.login);
+      await cleanup(element, config.passes || {}, opts.pass);
+      await pushChanges(element, opts.prAssignee || user.login);
     } catch (err) {
       throw new Error(`Error updating ${element.dir}:\n${err.stack || err}`);
     }

@@ -146,4 +146,4 @@ async function addLicenseHeader(element: ElementRepo): Promise<void> {
   }
 }
 
-register({name: 'license', pass: addLicenseHeader, runsByDefault: true});
+register({name: 'license', pass: addLicenseHeader});

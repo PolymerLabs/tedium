@@ -173,8 +173,4 @@ function wordsWithDashesToCamelCase(wordsWithDashes: string): string {
       .join('');
 }
 
-register({
-  name: 'readme',
-  pass: generateReadme,
-  runsByDefault: true,
-});
+register({name: 'readme', pass: generateReadme});

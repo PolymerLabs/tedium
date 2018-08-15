@@ -78,8 +78,4 @@ async function cleanupBower(element: ElementRepo): Promise<void> {
   }
 };
 
-register({
-  name: 'bower',
-  pass: cleanupBower,
-  runsByDefault: true,
-});
+register({name: 'bower', pass: cleanupBower});

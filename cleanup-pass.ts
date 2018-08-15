@@ -23,11 +23,6 @@ export interface CleanupPass {
   name: string;
 
   /**
-   * Is this cleanup pass stable / reliable enough to run by default?
-   */
-  runsByDefault: boolean;
-
-  /**
    * The implementation function for the cleanup pass.
    */
   pass(element: ElementRepo): Promise<void>;

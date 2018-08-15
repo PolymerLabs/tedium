@@ -164,8 +164,4 @@ async function typescriptPass(element: ElementRepo): Promise<void> {
   }
 }
 
-register({
-  name: 'typescript',
-  pass: typescriptPass,
-  runsByDefault: false,
-});
+register({name: 'typescript', pass: typescriptPass});

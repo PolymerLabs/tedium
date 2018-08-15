@@ -67,4 +67,4 @@ async function cleanupWctConf(element: ElementRepo): Promise<void> {
   }
 }
 
-register({name: 'wct-conf', pass: cleanupWctConf, runsByDefault: true});
+register({name: 'wct-conf', pass: cleanupWctConf});

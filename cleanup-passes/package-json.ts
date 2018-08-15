@@ -78,8 +78,4 @@ async function generatePackageJson(element: ElementRepo): Promise<void> {
       'Generate minimal package.json from bower.json');
 }
 
-register({
-  name: 'package-json',
-  pass: generatePackageJson,
-  runsByDefault: false,
-});
+register({name: 'package-json', pass: generatePackageJson});

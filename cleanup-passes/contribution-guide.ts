@@ -76,8 +76,4 @@ ${contributionGuideContents}`;
   await makeCommit(element, ['CONTRIBUTING.md'], commitMessage);
 }
 
-register({
-  name: 'contribution-guide',
-  pass: generateContributionGuide,
-  runsByDefault: true,
-});
+register({name: 'contribution-guide', pass: generateContributionGuide});

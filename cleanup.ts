@@ -29,11 +29,8 @@ import {getPasses, CleanupConfig} from './cleanup-pass';
  * To add a cleanup step, just add it to the array of passes above.
  */
 export async function cleanup(
-    element: ElementRepo, config: CleanupConfig, passesToRun?: string[]) {
+    element: ElementRepo, config: CleanupConfig, passesToRun: string[]) {
   const passes = getPasses().filter(p => {
-    if (passesToRun == null) {
-      return p.runsByDefault;
-    }
     return passesToRun.indexOf(p.name) >= 0;
   });
   for (const step of passes) {

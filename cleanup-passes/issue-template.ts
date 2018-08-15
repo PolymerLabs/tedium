@@ -80,4 +80,4 @@ async function addIssueTemplate(element: ElementRepo): Promise<void> {
   await makeCommit(element, [repoTemplatePath], message);
 }
 
-register({name: 'issue-template', pass: addIssueTemplate, runsByDefault: true})
+register({name: 'issue-template', pass: addIssueTemplate})
