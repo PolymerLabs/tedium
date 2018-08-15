@@ -8,3 +8,4 @@ import './issue-template';
 import './license-header';
 import './typescript';
 import './wct-conf';
+import './v3-elements';
